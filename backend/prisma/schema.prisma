@@ -1,0 +1,193 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Person {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Basic Information
+  firstName    String
+  middleName   String?
+  lastName     String
+  maidenName   String? // For tracking maiden names
+  nicknames    String[] // Array of nicknames
+  gender       Gender?
+  dateOfBirth  DateTime?
+  dateOfDeath  DateTime?
+  isDeceased   Boolean  @default(false)
+
+  // Contact & Location
+  email        String?
+  phone        String?
+  address      String?
+  city         String?
+  state        String?
+  country      String?
+
+  // Additional Info
+  bio          String?
+  occupation   String?
+  profilePhoto String? // URL to photo
+
+  // Parent Relationships
+  biologicalFatherId String?
+  biologicalFather   Person?  @relation("BiologicalChildren", fields: [biologicalFatherId], references: [id], onDelete: SetNull)
+  biologicalMotherId String?
+  biologicalMother   Person?  @relation("BiologicalChildrenMother", fields: [biologicalMotherId], references: [id], onDelete: SetNull)
+
+  // Children (biological)
+  biologicalChildren       Person[] @relation("BiologicalChildren")
+  biologicalChildrenMother Person[] @relation("BiologicalChildrenMother")
+
+  // Marriages/Partnerships
+  marriagesAsSpouse1 Marriage[] @relation("Spouse1")
+  marriagesAsSpouse2 Marriage[] @relation("Spouse2")
+
+  // Adoptions
+  adoptedChildren Person[] @relation("AdoptiveParent")
+  adoptiveParents Person[] @relation("AdoptedChild")
+  adoptiveParentId String?
+  adoptiveParent   Person?  @relation("AdoptiveParent", fields: [adoptiveParentId], references: [id], onDelete: SetNull)
+  adoptedChild     Person[] @relation("AdoptedChild")
+
+  // Media
+  photos      Photo[]
+  documents   Document[]
+  stories     Story[]
+
+  // Events
+  eventsAsSubject Event[] @relation("EventSubject")
+
+  @@index([lastName, firstName])
+  @@index([dateOfBirth])
+  @@index([biologicalFatherId])
+  @@index([biologicalMotherId])
+}
+
+model Marriage {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  spouse1Id String
+  spouse1   Person @relation("Spouse1", fields: [spouse1Id], references: [id], onDelete: Cascade)
+  
+  spouse2Id String
+  spouse2   Person @relation("Spouse2", fields: [spouse2Id], references: [id], onDelete: Cascade)
+
+  marriageDate    DateTime?
+  divorceDate     DateTime?
+  marriagePlace   String?
+  status          MarriageStatus @default(MARRIED)
+  notes           String?
+
+  @@index([spouse1Id])
+  @@index([spouse2Id])
+}
+
+model Photo {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  url         String
+  caption     String?
+  dateTaken   DateTime?
+  location    String?
+  
+  personId    String
+  person      Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId])
+}
+
+model Document {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  title       String
+  url         String
+  type        DocumentType
+  description String?
+  date        DateTime?
+  
+  personId    String
+  person      Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId])
+}
+
+model Story {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  title       String
+  content     String
+  author      String?
+  storyDate   DateTime?
+  
+  personId    String
+  person      Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId])
+}
+
+model Event {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  title       String
+  description String?
+  eventDate   DateTime
+  location    String?
+  eventType   EventType
+
+  // People involved in the event
+  subjects    Person[] @relation("EventSubject")
+
+  @@index([eventDate])
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum MarriageStatus {
+  MARRIED
+  DIVORCED
+  SEPARATED
+  WIDOWED
+}
+
+enum DocumentType {
+  BIRTH_CERTIFICATE
+  DEATH_CERTIFICATE
+  MARRIAGE_CERTIFICATE
+  DIVORCE_PAPERS
+  MILITARY_RECORD
+  IMMIGRATION_RECORD
+  OTHER
+}
+
+enum EventType {
+  BIRTH
+  DEATH
+  MARRIAGE
+  DIVORCE
+  GRADUATION
+  MILITARY_SERVICE
+  IMMIGRATION
+  REUNION
+  OTHER
+}
