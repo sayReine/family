@@ -1,9 +1,37 @@
+// This is your Prisma schema file for a Family Tree application
+// Optimized for Neon Postgres with Role-Based Access Control
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Authentication
+  email     String   @unique
+  password  String   // Hashed password
+  role      UserRole @default(GUEST)
+  isActive  Boolean  @default(true)
+
+  // Link to Person in family tree
+  personId  String?  @unique
+  person    Person?  @relation(fields: [personId], references: [id], onDelete: SetNull)
+
+  // Activity tracking
+  lastLoginAt DateTime?
+  
+  // Audit logs
+  auditLogs AuditLog[]
+
+  @@index([email])
+  @@index([role])
 }
 
 model Person {
@@ -63,6 +91,14 @@ model Person {
 
   // Events
   eventsAsSubject Event[] @relation("EventSubject")
+
+  // Link to User account (if they have one)
+  user User?
+
+  // Audit tracking
+  createdBy   String?
+  updatedBy   String?
+  auditLogs   AuditLog[] @relation("AuditPerson")
 
   @@index([lastName, firstName])
   @@index([dateOfBirth])
@@ -155,6 +191,41 @@ model Event {
   subjects    Person[] @relation("EventSubject")
 
   @@index([eventDate])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  personId  String?
+  person    Person? @relation("AuditPerson", fields: [personId], references: [id], onDelete: Cascade)
+
+  action    AuditAction
+  entityType String // "Person", "Marriage", "Photo", etc.
+  entityId   String
+  changes    Json? // Store the actual changes made
+  ipAddress  String?
+
+  @@index([userId])
+  @@index([personId])
+  @@index([createdAt])
+  @@index([action])
+}
+
+enum UserRole {
+  GUEST   // Can only view the family tree
+  MEMBER  // Can add/modify themselves and direct relatives
+  ADMIN   // Full access to manage entire tree
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  VIEW
 }
 
 enum Gender {

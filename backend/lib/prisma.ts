@@ -9,4 +9,4 @@ const connectionString =`${process.env.DATABASE_URL}`
 
 const adapter = new PrismaNeon({connectionString})
 
-export const prisma = new PrismaClient({ adapter })
+export const prisma = new PrismaClient({ adapter } as any)

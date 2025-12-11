@@ -5,6 +5,7 @@
     "moduleResolution": "node",
     "target": "ES2023",
     "strict": true,
+    "noEmit": true,
     "esModuleInterop": true,
     "jsx": "react-jsx",
     "verbatimModuleSyntax": true,
@@ -12,5 +13,6 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
+    "allowImportingTsExtensions":true,
   }
 }
