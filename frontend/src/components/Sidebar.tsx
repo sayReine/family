@@ -21,43 +21,61 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }: SidebarProps) {
           sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
       >
-        <div className="p-6 font-bold text-xl border-b border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">Family Dashboard</div>
+        <div className="p-6 font-bold text-xl border-b border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+          Family Dashboard
+        </div>
 
         <nav className="flex-1 p-4 space-y-3">
           <NavLink
             to="/"
             className={({ isActive }) =>
-              `block p-2 rounded cursor-pointer ${isActive ? "bg-gray-300 dark:bg-gray-700" : "hover:bg-gray-200 dark:hover:bg-gray-700"} text-gray-900 dark:text-white`
+              `block p-2 rounded cursor-pointer ${
+                isActive
+                  ? "bg-gray-300 dark:bg-gray-700"
+                  : "hover:bg-gray-200 dark:hover:bg-gray-700"
+              } text-gray-900 dark:text-white`
             }
             onClick={() => setSidebarOpen(false)}
           >
-            🏠 Overview
+            🏠 Acceuil
           </NavLink>
 
           <NavLink
             to="/tree"
             className={({ isActive }) =>
-              `block p-2 rounded cursor-pointer ${isActive ? "bg-gray-300 dark:bg-gray-700" : "hover:bg-gray-200 dark:hover:bg-gray-700"} text-gray-900 dark:text-white`
+              `block p-2 rounded cursor-pointer ${
+                isActive
+                  ? "bg-gray-300 dark:bg-gray-700"
+                  : "hover:bg-gray-200 dark:hover:bg-gray-700"
+              } text-gray-900 dark:text-white`
             }
             onClick={() => setSidebarOpen(false)}
           >
-            🌳 Family Tree
+            🌳 Arbre Généalogique
           </NavLink>
 
           <NavLink
             to="/members"
             className={({ isActive }) =>
-              `block p-2 rounded cursor-pointer ${isActive ? "bg-gray-300 dark:bg-gray-700" : "hover:bg-gray-200 dark:hover:bg-gray-700"} text-gray-900 dark:text-white`
+              `block p-2 rounded cursor-pointer ${
+                isActive
+                  ? "bg-gray-300 dark:bg-gray-700"
+                  : "hover:bg-gray-200 dark:hover:bg-gray-700"
+              } text-gray-900 dark:text-white`
             }
             onClick={() => setSidebarOpen(false)}
           >
-            👨‍👩‍👧 Members
+            👨‍👩‍👧 Membres
           </NavLink>
 
           <NavLink
             to="/generations"
             className={({ isActive }) =>
-              `block p-2 rounded cursor-pointer ${isActive ? "bg-gray-300 dark:bg-gray-700" : "hover:bg-gray-200 dark:hover:bg-gray-700"} text-gray-900 dark:text-white`
+              `block p-2 rounded cursor-pointer ${
+                isActive
+                  ? "bg-gray-300 dark:bg-gray-700"
+                  : "hover:bg-gray-200 dark:hover:bg-gray-700"
+              } text-gray-900 dark:text-white`
             }
             onClick={() => setSidebarOpen(false)}
           >
@@ -65,17 +83,50 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }: SidebarProps) {
           </NavLink>
 
           <NavLink
-            to="/settings"
+            to="/events"
             className={({ isActive }) =>
-              `block p-2 rounded cursor-pointer ${isActive ? "bg-gray-300 dark:bg-gray-700" : "hover:bg-gray-200 dark:hover:bg-gray-700"} text-gray-900 dark:text-white`
+              `block p-2 rounded cursor-pointer ${
+                isActive
+                  ? "bg-gray-300 dark:bg-gray-700"
+                  : "hover:bg-gray-200 dark:hover:bg-gray-700"
+              } text-gray-900 dark:text-white`
             }
             onClick={() => setSidebarOpen(false)}
           >
-            ⚙️ Settings
+            📅 Evénéments
+          </NavLink>
+
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              `block p-2 rounded cursor-pointer ${
+                isActive
+                  ? "bg-gray-300 dark:bg-gray-700"
+                  : "hover:bg-gray-200 dark:hover:bg-gray-700"
+              } text-gray-900 dark:text-white`
+            }
+            onClick={() => setSidebarOpen(false)}
+          >
+            📷 Galleries
+          </NavLink>
+          <NavLink
+            to="/auth"
+            className={({ isActive }) =>
+              `block p-2 rounded cursor-pointer ${
+                isActive
+                  ? "bg-gray-300 dark:bg-gray-700"
+                  : "hover:bg-gray-200 dark:hover:bg-gray-700"
+              } text-gray-900 dark:text-white`
+            }
+            onClick={() => setSidebarOpen(false)}
+          >
+               Connexion/Inscription
           </NavLink>
         </nav>
 
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">© 2025 My Family</div>
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">
+          © 2025 My Family
+        </div>
       </aside>
     </>
   );
