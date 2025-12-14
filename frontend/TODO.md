@@ -1,15 +1,7 @@
-# Frontend-Backend Integration with Axios - TODO
+# TODO: Create Dashboard as Front Page
 
-## Completed Tasks
-- [x] Install Axios in the frontend
-- [x] Create API service file (frontend/src/services/api.ts) with Axios instance configured to backend (http://localhost:3000/api)
-- [x] Set up request/response interceptors for authentication token handling
-- [x] Define auth API functions: register, login, getMe, linkPerson, updateUserRole
-- [x] Define persons API functions: getPersons, getPerson, createPerson, updatePerson, deletePerson, createMarriage
-- [x] Add TypeScript types for better type safety
-
-## Next Steps
-- [ ] Integrate API calls into React components (e.g., login form, person list)
-- [ ] Add error handling and loading states in components
-- [ ] Implement authentication context/state management
-- [ ] Test API integration with running backend server
+- [x] Update FamilyTree.tsx with the provided FamilyTree component code
+- [x] Update Members.tsx with a component to display family members
+- [x] Update Generations.tsx with a component to display generations
+- [x] Create new Dashboard.tsx file that combines FamilyTree, Members, and Generations
+- [x] Update App.tsx to route "/" to Dashboard instead of Overview

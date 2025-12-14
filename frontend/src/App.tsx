@@ -1,9 +1,15 @@
 import { useState } from "react";
+import {  Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Sidebar from "./components/Sidebar";
-import Topbar from "./components/Topbar";
-import StatsCards from "./components/StatsCards";
-import TreePreview from "./components/TreePreview";
+import { BackendAuthProvider } from "./contexts/BackendAuthContext";
+import Dashboard from "./pages/Dashboard";
+import Overview from "./pages/Overview";
+import FamilyTree from "./pages/FamilyTree";
+import Members from "./pages/Members";
+import Generations from "./pages/Generations";
+import Settings from "./pages/Settings";
+import Form from "./auth/Form";
 
 function AppContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -13,11 +19,15 @@ function AppContent() {
       <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       <div className="flex-1 flex flex-col md:ml-0">
-        <Topbar setSidebarOpen={setSidebarOpen} />
-
         <main className="flex-1 p-6 overflow-y-auto mt-16 bg-gray-100 dark:bg-gray-900">
-          <StatsCards />
-          <TreePreview />
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/tree" element={<FamilyTree />} />
+            <Route path="/members" element={<Members />} />
+            <Route path="/generations" element={<Generations />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/auth" element={<Form />} />
+          </Routes>
         </main>
       </div>
     </div>
@@ -26,8 +36,12 @@ function AppContent() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <AppContent />
-    </ThemeProvider>
+    
+      <ThemeProvider>
+        <BackendAuthProvider>
+          <AppContent />
+        </BackendAuthProvider>
+      </ThemeProvider>
+    
   );
 }

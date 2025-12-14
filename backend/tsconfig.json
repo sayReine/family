@@ -3,10 +3,9 @@
   "compilerOptions": {
      "module": "ESNext",
     "moduleResolution": "node",
+    "noEmit":true,
     "target": "ES2023",
     "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
     "jsx": "react-jsx",
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
