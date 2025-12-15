@@ -13,14 +13,14 @@ const Dashboard: React.FC = () => {
             <h2 className="text-2xl font-semibold mb-4">Family Tree</h2>
             <FamilyTree />
           </section>
-          <section>
+          {/* <section>
             <h2 className="text-2xl font-semibold mb-4">Members</h2>
             <Members />
           </section>
           <section>
             <h2 className="text-2xl font-semibold mb-4">Generations</h2>
             <Generations />
-          </section>
+          </section> */}
         </div>
       </div>
     </div>
