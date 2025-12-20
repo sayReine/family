@@ -63,6 +63,12 @@ model Person {
   occupation   String?
   profilePhoto String? // URL to photo
 
+  profileStatus    ProfileStatus @default(DRAFT)
+  rejectionReason  String?
+  submittedAt      DateTime?
+  reviewedAt       DateTime?
+  reviewedBy       String? // userId of admin who reviewed
+
   // Parent Relationships
   biologicalFatherId String?
   biologicalFather   Person?  @relation("BiologicalChildren", fields: [biologicalFatherId], references: [id], onDelete: SetNull)
@@ -214,6 +220,14 @@ model AuditLog {
   @@index([createdAt])
   @@index([action])
 }
+
+enum ProfileStatus {
+  DRAFT       // User is still working on it
+  PENDING     // Submitted for admin review
+  APPROVED    // Admin approved - visible in tree
+  REJECTED    // Admin rejected - needs changes
+}
+
 
 enum UserRole {
   GUEST   // Can only view the family tree

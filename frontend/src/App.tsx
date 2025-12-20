@@ -9,7 +9,7 @@ import FamilyTree from "./pages/FamilyTree";
 import Members from "./pages/Members";
 import Generations from "./pages/Generations";
 import Settings from "./pages/Settings";
-import Form from "./auth/Form";
+import ProfilePage from "./pages/ProfilePage";
 import Topbar from "./components/Topbar";
 
 function AppContent() {
@@ -28,7 +28,7 @@ function AppContent() {
             <Route path="/members" element={<Members />} />
             <Route path="/generations" element={<Generations />} />
             <Route path="/settings" element={<Settings />} />
-            <Route path="/auth" element={<Form />} />
+            <Route path="/profile" element={<ProfilePage />} />
           </Routes>
         </main>
       </div>

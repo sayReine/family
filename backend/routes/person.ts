@@ -5,7 +5,9 @@ import type { AuthRequest } from '../middleware/auth.ts'
 
 const router = express.Router()
 
-// Create person profile for current user
+// ==================== PROFILE MANAGEMENT ROUTES ====================
+
+// Create or update comprehensive person profile for current user
 router.post('/profile', authenticate, async (req: AuthRequest, res) => {
   try {
     const userId = req.user!.id
@@ -16,13 +18,8 @@ router.post('/profile', authenticate, async (req: AuthRequest, res) => {
       include: { person: true }
     })
 
-    if (existingUser?.personId) {
-      return res.status(400).json({ 
-        error: 'User already has a person profile linked' 
-      })
-    }
-
     const {
+      // Section 1: Identity
       firstName,
       middleName,
       lastName,
@@ -30,14 +27,33 @@ router.post('/profile', authenticate, async (req: AuthRequest, res) => {
       nicknames,
       gender,
       dateOfBirth,
+      isDeceased,
+      dateOfDeath,
+      
+      // Section 2: Contact & Location
       email,
       phone,
       address,
       city,
       state,
       country,
+      
+      // Section 3: Family Relationships
+      biologicalFatherId,
+      biologicalMotherId,
+      spouses, // Array of spouse objects
+      
+      // Section 4: Children
+      childrenIds, // Array of child IDs
+      
+      // Section 5: Life & Story
       bio,
-      occupation
+      occupation,
+      stories, // Array of story objects
+      profilePhoto,
+      
+      // Profile status
+      status // DRAFT, PENDING, APPROVED, REJECTED
     } = req.body
 
     // Validate required fields
@@ -47,9 +63,151 @@ router.post('/profile', authenticate, async (req: AuthRequest, res) => {
       })
     }
 
-    // Create person
+    // If updating existing profile
+    if (existingUser?.personId) {
+      // Update person
+      const updatedPerson = await prisma.person.update({
+        where: { id: existingUser.personId },
+        data: {
+          // Identity
+          firstName,
+          middleName: middleName || null,
+          lastName,
+          maidenName: maidenName || null,
+          nicknames: Array.isArray(nicknames) ? nicknames : [],
+          gender: gender || null,
+          dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+          isDeceased: isDeceased || false,
+          dateOfDeath: (isDeceased && dateOfDeath) ? new Date(dateOfDeath) : null,
+          
+          // Contact
+          email: email || null,
+          phone: phone || null,
+          address: address || null,
+          city: city || null,
+          state: state || null,
+          country: country || null,
+          
+          // Family relationships
+          biologicalFatherId: biologicalFatherId || null,
+          biologicalMotherId: biologicalMotherId || null,
+          
+          // Life & Story
+          bio: bio || null,
+          occupation: occupation || null,
+          profilePhoto: profilePhoto || null,
+          
+          updatedBy: userId
+        }
+      })
+
+      // Handle spouses (marriages)
+      if (Array.isArray(spouses) && spouses.length > 0) {
+        // Delete existing marriages for this person
+        await prisma.marriage.deleteMany({
+          where: {
+            OR: [
+              { spouse1Id: existingUser.personId },
+              { spouse2Id: existingUser.personId }
+            ]
+          }
+        })
+
+        // Create new marriages
+        for (const spouse of spouses) {
+          if (spouse.spouseId) {
+            await prisma.marriage.create({
+              data: {
+                spouse1Id: existingUser.personId,
+                spouse2Id: spouse.spouseId,
+                marriageDate: spouse.marriageDate ? new Date(spouse.marriageDate) : null,
+                status: spouse.status || 'MARRIED'
+              }
+            })
+          }
+        }
+      }
+
+      // Handle stories
+      if (Array.isArray(stories) && stories.length > 0) {
+        // Delete existing stories
+        await prisma.story.deleteMany({
+          where: { personId: existingUser.personId }
+        })
+
+        // Create new stories
+        for (const story of stories) {
+          if (story.title && story.content) {
+            await prisma.story.create({
+              data: {
+                personId: existingUser.personId,
+                title: story.title,
+                content: story.content,
+                storyDate: story.date ? new Date(story.date) : null,
+                author: `${firstName} ${lastName}`
+              }
+            })
+          }
+        }
+      }
+
+      // Log the update
+      await logAudit(
+        userId,
+        'UPDATE',
+        'Person',
+        existingUser.personId,
+        existingUser.personId,
+        { action: 'updated_comprehensive_profile', status },
+        req.ip
+      )
+
+      // Fetch complete updated profile
+      const completeProfile = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          personId: true,
+          person: {
+            include: {
+              biologicalFather: {
+                select: { id: true, firstName: true, lastName: true, profilePhoto: true }
+              },
+              biologicalMother: {
+                select: { id: true, firstName: true, lastName: true, profilePhoto: true }
+              },
+              marriagesAsSpouse1: {
+                include: {
+                  spouse2: {
+                    select: { id: true, firstName: true, lastName: true, profilePhoto: true }
+                  }
+                }
+              },
+              marriagesAsSpouse2: {
+                include: {
+                  spouse1: {
+                    select: { id: true, firstName: true, lastName: true, profilePhoto: true }
+                  }
+                }
+              },
+              biologicalChildren: {
+                select: { id: true, firstName: true, lastName: true, dateOfBirth: true, profilePhoto: true }
+              },
+              stories: true
+            }
+          }
+        }
+      })
+
+      return res.json(completeProfile)
+    }
+
+    // Create new person profile
     const person = await prisma.person.create({
       data: {
+        // Identity
         firstName,
         middleName: middleName || null,
         lastName,
@@ -57,51 +215,69 @@ router.post('/profile', authenticate, async (req: AuthRequest, res) => {
         nicknames: Array.isArray(nicknames) ? nicknames : [],
         gender: gender || null,
         dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+        isDeceased: isDeceased || false,
+        dateOfDeath: (isDeceased && dateOfDeath) ? new Date(dateOfDeath) : null,
+        
+        // Contact
         email: email || null,
         phone: phone || null,
         address: address || null,
         city: city || null,
         state: state || null,
         country: country || null,
+        
+        // Family relationships
+        biologicalFatherId: biologicalFatherId || null,
+        biologicalMotherId: biologicalMotherId || null,
+        
+        // Life & Story
         bio: bio || null,
         occupation: occupation || null,
+        profilePhoto: profilePhoto || null,
+        
         createdBy: userId,
         updatedBy: userId
       }
     })
 
     // Link person to user
-    const updatedUser = await prisma.user.update({
+    await prisma.user.update({
       where: { id: userId },
-      data: { personId: person.id },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        personId: true,
-        person: {
-          select: {
-            id: true,
-            firstName: true,
-            middleName: true,
-            lastName: true,
-            maidenName: true,
-            nicknames: true,
-            gender: true,
-            dateOfBirth: true,
-            email: true,
-            phone: true,
-            address: true,
-            city: true,
-            state: true,
-            country: true,
-            bio: true,
-            occupation: true,
-            profilePhoto: true
-          }
+      data: { personId: person.id }
+    })
+
+    // Handle spouses (marriages)
+    if (Array.isArray(spouses) && spouses.length > 0) {
+      for (const spouse of spouses) {
+        if (spouse.spouseId) {
+          await prisma.marriage.create({
+            data: {
+              spouse1Id: person.id,
+              spouse2Id: spouse.spouseId,
+              marriageDate: spouse.marriageDate ? new Date(spouse.marriageDate) : null,
+              status: spouse.status || 'MARRIED'
+            }
+          })
         }
       }
-    })
+    }
+
+    // Handle stories
+    if (Array.isArray(stories) && stories.length > 0) {
+      for (const story of stories) {
+        if (story.title && story.content) {
+          await prisma.story.create({
+            data: {
+              personId: person.id,
+              title: story.title,
+              content: story.content,
+              storyDate: story.date ? new Date(story.date) : null,
+              author: `${firstName} ${lastName}`
+            }
+          })
+        }
+      }
+    }
 
     // Log the creation
     await logAudit(
@@ -110,92 +286,53 @@ router.post('/profile', authenticate, async (req: AuthRequest, res) => {
       'Person',
       person.id,
       person.id,
-      { action: 'created_person_profile' },
+      { action: 'created_comprehensive_profile', status },
       req.ip
     )
 
-    res.status(201).json(updatedUser)
-  } catch (error) {
-    console.error('Create person profile error:', error)
-    res.status(500).json({ error: 'Failed to create person profile' })
-  }
-})
-
-// Update person profile for current user
-router.put('/profile', authenticate, async (req: AuthRequest, res) => {
-  try {
-    const userId = req.user!.id
-    
-    // Get user with person
-    const user = await prisma.user.findUnique({
+    // Fetch complete profile
+    const completeProfile = await prisma.user.findUnique({
       where: { id: userId },
-      include: { person: true }
-    })
-
-    if (!user?.personId) {
-      return res.status(404).json({ 
-        error: 'No person profile found. Please create one first.' 
-      })
-    }
-
-    const {
-      firstName,
-      middleName,
-      lastName,
-      maidenName,
-      nicknames,
-      gender,
-      dateOfBirth,
-      email,
-      phone,
-      address,
-      city,
-      state,
-      country,
-      bio,
-      occupation,
-      profilePhoto
-    } = req.body
-
-    // Update person
-    const updatedPerson = await prisma.person.update({
-      where: { id: user.personId },
-      data: {
-        ...(firstName && { firstName }),
-        middleName: middleName !== undefined ? middleName : undefined,
-        ...(lastName && { lastName }),
-        maidenName: maidenName !== undefined ? maidenName : undefined,
-        nicknames: nicknames !== undefined ? (Array.isArray(nicknames) ? nicknames : []) : undefined,
-        gender: gender !== undefined ? gender : undefined,
-        dateOfBirth: dateOfBirth !== undefined ? (dateOfBirth ? new Date(dateOfBirth) : null) : undefined,
-        email: email !== undefined ? email : undefined,
-        phone: phone !== undefined ? phone : undefined,
-        address: address !== undefined ? address : undefined,
-        city: city !== undefined ? city : undefined,
-        state: state !== undefined ? state : undefined,
-        country: country !== undefined ? country : undefined,
-        bio: bio !== undefined ? bio : undefined,
-        occupation: occupation !== undefined ? occupation : undefined,
-        profilePhoto: profilePhoto !== undefined ? profilePhoto : undefined,
-        updatedBy: userId
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        personId: true,
+        person: {
+          include: {
+            biologicalFather: {
+              select: { id: true, firstName: true, lastName: true, profilePhoto: true }
+            },
+            biologicalMother: {
+              select: { id: true, firstName: true, lastName: true, profilePhoto: true }
+            },
+            marriagesAsSpouse1: {
+              include: {
+                spouse2: {
+                  select: { id: true, firstName: true, lastName: true, profilePhoto: true }
+                }
+              }
+            },
+            marriagesAsSpouse2: {
+              include: {
+                spouse1: {
+                  select: { id: true, firstName: true, lastName: true, profilePhoto: true }
+                }
+              }
+            },
+            biologicalChildren: {
+              select: { id: true, firstName: true, lastName: true, dateOfBirth: true, profilePhoto: true }
+            },
+            stories: true
+          }
+        }
       }
     })
 
-    // Log the update
-    await logAudit(
-      userId,
-      'UPDATE',
-      'Person',
-      user.personId,
-      user.personId,
-      { action: 'updated_person_profile' },
-      req.ip
-    )
-
-    res.json(updatedPerson)
+    res.status(201).json(completeProfile)
   } catch (error) {
-    console.error('Update person profile error:', error)
-    res.status(500).json({ error: 'Failed to update person profile' })
+    console.error('Create/update person profile error:', error)
+    res.status(500).json({ error: 'Failed to process person profile' })
   }
 })
 
@@ -214,7 +351,8 @@ router.get('/profile', authenticate, async (req: AuthRequest, res) => {
                 id: true,
                 firstName: true,
                 lastName: true,
-                profilePhoto: true
+                profilePhoto: true,
+                dateOfBirth: true
               }
             },
             biologicalMother: {
@@ -222,7 +360,8 @@ router.get('/profile', authenticate, async (req: AuthRequest, res) => {
                 id: true,
                 firstName: true,
                 lastName: true,
-                profilePhoto: true
+                profilePhoto: true,
+                dateOfBirth: true
               }
             },
             marriagesAsSpouse1: {
@@ -232,7 +371,8 @@ router.get('/profile', authenticate, async (req: AuthRequest, res) => {
                     id: true,
                     firstName: true,
                     lastName: true,
-                    profilePhoto: true
+                    profilePhoto: true,
+                    dateOfBirth: true
                   }
                 }
               }
@@ -244,9 +384,24 @@ router.get('/profile', authenticate, async (req: AuthRequest, res) => {
                     id: true,
                     firstName: true,
                     lastName: true,
-                    profilePhoto: true
+                    profilePhoto: true,
+                    dateOfBirth: true
                   }
                 }
+              }
+            },
+            biologicalChildren: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                dateOfBirth: true,
+                profilePhoto: true
+              }
+            },
+            stories: {
+              orderBy: {
+                storyDate: 'desc'
               }
             }
           }
@@ -267,12 +422,70 @@ router.get('/profile', authenticate, async (req: AuthRequest, res) => {
   }
 })
 
+// ==================== PERSON SEARCH ROUTE ====================
+
+// Search persons (for autocomplete in relationships)
+router.get('/search', authenticate, async (req: AuthRequest, res) => {
+  try {
+    const { q = '', limit = '10' } = req.query
+
+    if (!q || (q as string).length < 2) {
+      return res.json([])
+    }
+
+    const searchQuery = q as string
+
+    const persons = await prisma.person.findMany({
+      where: {
+        OR: [
+          { firstName: { contains: searchQuery, mode: 'insensitive' } },
+          { lastName: { contains: searchQuery, mode: 'insensitive' } },
+          { nicknames: { has: searchQuery } }
+        ]
+      },
+      take: parseInt(limit as string),
+      orderBy: [
+        { lastName: 'asc' },
+        { firstName: 'asc' }
+      ],
+      select: {
+        id: true,
+        firstName: true,
+        middleName: true,
+        lastName: true,
+        dateOfBirth: true,
+        profilePhoto: true,
+        city: true,
+        isDeceased: true
+      }
+    })
+
+    // Format response for autocomplete
+    const formattedResults = persons.map(person => ({
+      id: person.id,
+      name: `${person.firstName} ${person.middleName ? person.middleName + ' ' : ''}${person.lastName}`,
+      firstName: person.firstName,
+      lastName: person.lastName,
+      birthYear: person.dateOfBirth ? new Date(person.dateOfBirth).getFullYear() : undefined,
+      profilePhoto: person.profilePhoto,
+      city: person.city,
+      isDeceased: person.isDeceased
+    }))
+
+    res.json(formattedResults)
+  } catch (error) {
+    console.error('Person search error:', error)
+    res.status(500).json({ error: 'Failed to search persons' })
+  }
+})
+
+// ==================== EXISTING ROUTES (Keep these) ====================
+
 // Get person by ID (with access control)
 router.get('/:personId', authenticate, async (req: AuthRequest, res) => {
   try {
     const { personId } = req.params
     const userId = req.user!.id
-    const userRole = req.user!.role
 
     const person = await prisma.person.findUnique({
       where: { id: personId },
@@ -458,10 +671,7 @@ router.put('/:personId', authenticate, async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Person not found' })
     }
 
-    // Access control: 
-    // - ADMIN can update anyone
-    // - MEMBER can update themselves and direct relatives
-    // - GUEST can only update themselves
+    // Access control
     const currentUser = await prisma.user.findUnique({
       where: { id: userId },
       select: { personId: true }
@@ -476,7 +686,6 @@ router.put('/:personId', authenticate, async (req: AuthRequest, res) => {
     }
 
     if (userRole === 'MEMBER' && !isOwnProfile) {
-      // Check if user has a person profile
       if (!currentUser?.personId) {
         return res.status(403).json({ 
           error: 'You can only update your own profile and direct relatives' 
