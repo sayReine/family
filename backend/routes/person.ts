@@ -1,4 +1,4 @@
-import * as express from 'express'
+import  express from 'express'
 import { prisma } from '../lib/prisma.ts'
 import { authenticate, logAudit } from '../middleware/auth.ts'
 import type { AuthRequest } from '../middleware/auth.ts'
@@ -15,8 +15,20 @@ router.post('/profile', authenticate, async (req: AuthRequest, res) => {
     // Check if user already has a person linked
     const existingUser = await prisma.user.findUnique({
       where: { id: userId },
-      include: { person: true }
+      select: {
+        id: true,
+        email: true,
+        personId: true,
+        person: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true
+          }
+        }
+      }
     })
+    
 
     const {
       // Section 1: Identity
@@ -100,6 +112,7 @@ router.post('/profile', authenticate, async (req: AuthRequest, res) => {
           updatedBy: userId
         }
       })
+      
 
       // Handle spouses (marriages)
       if (Array.isArray(spouses) && spouses.length > 0) {

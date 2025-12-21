@@ -1,6 +1,6 @@
 
 import type { Request, Response, NextFunction } from 'express'
-import * as jwt from 'jsonwebtoken'
+import jwt from 'jsonwebtoken'
 import { prisma } from '../lib/prisma.ts'
 
 export interface AuthRequest extends Request {

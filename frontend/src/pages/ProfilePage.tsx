@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { ChevronRight, ChevronLeft, Save, Send, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronRight, ChevronLeft, Save, Send, CheckCircle, XCircle, Clock, AlertCircle, UserPlus } from 'lucide-react';
 import { ProfileProvider, useProfile } from '../contexts/ProfileContext';
+import { useBackendAuth } from '../contexts/BackendAuthContext';
 import IdentitySection from '../components/profile/IdentitySection';
 import ContactSection from '../components/profile/ContactSection';
 import FamilyRelationshipsSection from '../components/profile/FamilyRelationshipSection';
@@ -22,10 +23,25 @@ const ProfilePageContent: React.FC = () => {
     profileData,
     submitProfile,
     saveDraft,
+    registerAndSubmit,
     isLoading,
+    isNewUser,
+    setIsNewUser,
+    updateContact,
   } = useProfile();
 
+  const { isAuthenticated } = useBackendAuth();
+  
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Detect if user is new (not authenticated)
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setIsNewUser(true);
+    }
+  }, [isAuthenticated, setIsNewUser]);
 
   const handleNext = () => {
     if (currentSection < sections.length) {
@@ -43,20 +59,57 @@ const ProfilePageContent: React.FC = () => {
 
   const handleSaveDraft = async () => {
     try {
+      console.log('handleSaveDraft called');
       await saveDraft();
       alert('Draft saved successfully!');
     } catch (error) {
-      alert('Failed to save draft. Please try again.');
+      console.error('handleSaveDraft error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Failed to save draft: ${errorMessage}`);
     }
   };
 
   const handleSubmit = async () => {
     try {
-      await submitProfile();
+      if (isNewUser) {
+        // Validate registration fields
+        if (!profileData.email) {
+          alert('Email is required for registration');
+          return;
+        }
+        
+        if (!password) {
+          alert('Password is required for registration');
+          return;
+        }
+        
+        if (password !== confirmPassword) {
+          alert('Passwords do not match');
+          return;
+        }
+        
+        if (password.length < 6) {
+          alert('Password must be at least 6 characters long');
+          return;
+        }
+
+        // Update profile data with password
+        updateContact({ password, confirmPassword });
+        
+        // Register and submit
+        await registerAndSubmit();
+        alert('Registration successful! Your profile has been submitted for review.');
+      } else {
+        // Just submit profile for existing users
+        await submitProfile();
+        alert('Profile submitted for review!');
+      }
+      
       setShowSubmitConfirm(false);
-      alert('Profile submitted for review!');
     } catch (error) {
-      alert('Failed to submit profile. Please try again.');
+      console.error('Submit error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Failed to submit: ${errorMessage}`);
     }
   };
 
@@ -103,11 +156,29 @@ const ProfilePageContent: React.FC = () => {
         <div className="bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-50">Profile Information</h1>
-              <p className="text-gray-50 mt-1">Complete your profile to join the family tree</p>
+              <h1 className="text-3xl font-bold text-gray-50">
+                {isNewUser ? 'Register & Create Profile' : 'Profile Information'}
+              </h1>
+              <p className="text-gray-50 mt-1">
+                {isNewUser 
+                  ? 'Create your account and join the family tree'
+                  : 'Complete your profile to join the family tree'
+                }
+              </p>
             </div>
-            {getStatusBadge()}
+            {!isNewUser && getStatusBadge()}
           </div>
+
+          {/* New User Notice */}
+          {isNewUser && (
+            <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
+              <UserPlus className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-blue-800">
+                <p className="font-medium">New User Registration</p>
+                <p className="mt-1">You'll need to provide an email and password to create your account. Make sure to use the same email in the Contact section.</p>
+              </div>
+            </div>
+          )}
 
           {/* Rejection Notice */}
           {profileData.status === 'REJECTED' && profileData.rejectionReason && (
@@ -169,7 +240,7 @@ const ProfilePageContent: React.FC = () => {
           <button
             onClick={handleBack}
             disabled={currentSection === 1}
-            className="flex items-center gap-2 px-6 py-3  text-white rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-2 px-6 py-3 text-white rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <ChevronLeft className="w-5 h-5" />
             Back
@@ -177,14 +248,16 @@ const ProfilePageContent: React.FC = () => {
 
           {/* Center Actions */}
           <div className="flex gap-3">
-            <button
-              onClick={handleSaveDraft}
-              disabled={isLoading}
-              className="flex items-center gap-2 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
-            >
-              <Save className="w-5 h-5" />
-              Save Draft
-            </button>
+            {!isNewUser && (
+              <button
+                onClick={handleSaveDraft}
+                disabled={isLoading}
+                className="flex items-center gap-2 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
+              >
+                <Save className="w-5 h-5" />
+                Save Draft
+              </button>
+            )}
 
             {currentSection === sections.length && (
               <button
@@ -192,8 +265,8 @@ const ProfilePageContent: React.FC = () => {
                 disabled={isLoading}
                 className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
               >
-                <Send className="w-5 h-5" />
-                Submit for Review
+                {isNewUser ? <UserPlus className="w-5 h-5" /> : <Send className="w-5 h-5" />}
+                {isNewUser ? 'Register & Submit' : 'Submit for Review'}
               </button>
             )}
           </div>
@@ -215,29 +288,84 @@ const ProfilePageContent: React.FC = () => {
         {/* Submit Confirmation Modal */}
         {showSubmitConfirm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 bg-green-100 rounded-lg">
-                  <Send className="w-6 h-6 text-green-600" />
+                  {isNewUser ? <UserPlus className="w-6 h-6 text-green-600" /> : <Send className="w-6 h-6 text-green-600" />}
                 </div>
-                <h3 className="text-xl font-bold text-gray-900">Submit Profile for Review</h3>
+                <h3 className="text-xl font-bold text-gray-900">
+                  {isNewUser ? 'Create Account & Submit Profile' : 'Submit Profile for Review'}
+                </h3>
               </div>
 
+              {isNewUser && (
+                <div className="space-y-4 mb-6">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm font-medium text-blue-900 mb-3">Create Your Account</p>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Email <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="email"
+                          value={profileData.email || ''}
+                          disabled
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
+                          placeholder="Email from Contact section"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">From your Contact section</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Password <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                          placeholder="Create a password"
+                          minLength={6}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Confirm Password <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                          placeholder="Confirm your password"
+                          minLength={6}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-4 text-gray-700">
-                <p>You're about to submit your profile for administrator review.</p>
-                
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <p className="text-sm font-medium text-blue-900">What happens next?</p>
                   <ul className="mt-2 space-y-2 text-sm text-blue-800">
+                    {isNewUser && <li>• Your account will be created</li>}
                     <li>• Your profile will be reviewed by a family administrator</li>
                     <li>• You'll be notified once it's approved or if changes are needed</li>
                     <li>• After approval, you'll appear in the family tree</li>
                   </ul>
                 </div>
 
-                <p className="text-sm text-gray-600">
-                  You can still save as draft and make changes before submitting.
-                </p>
+                {!isNewUser && (
+                  <p className="text-sm text-gray-600">
+                    You can still save as draft and make changes before submitting.
+                  </p>
+                )}
               </div>
 
               <div className="flex gap-3 mt-6">
@@ -249,10 +377,10 @@ const ProfilePageContent: React.FC = () => {
                 </button>
                 <button
                   onClick={handleSubmit}
-                  disabled={isLoading}
+                  disabled={isLoading || (isNewUser && (!password || !confirmPassword))}
                   className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
                 >
-                  {isLoading ? 'Submitting...' : 'Submit Profile'}
+                  {isLoading ? 'Processing...' : isNewUser ? 'Create & Submit' : 'Submit Profile'}
                 </button>
               </div>
             </div>
