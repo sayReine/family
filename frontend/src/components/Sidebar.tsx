@@ -1,3 +1,4 @@
+import { User, User2 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 interface SidebarProps {
@@ -109,24 +110,20 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }: SidebarProps) {
           >
             📷 Galleries
           </NavLink>
-          <NavLink
-            to="/auth"
-            className={({ isActive }) =>
-              `block p-2 rounded cursor-pointer ${
-                isActive
-                  ? "bg-gray-300 dark:bg-gray-700"
-                  : "hover:bg-gray-200 dark:hover:bg-gray-700"
-              } text-gray-900 dark:text-white`
-            }
-            onClick={() => setSidebarOpen(false)}
-          >
-               Connexion/Inscription
-          </NavLink>
         </nav>
 
         <div className="p-4 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">
-          © 2025 My Family
+          <NavLink
+            to="/profile"
+            className="flex items-center space-x-2 hover:text-gray-900 dark:hover:text-white"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <User className="w-5 h-5" />
+             Profile
+          </NavLink>
         </div>
+        
+        
       </aside>
     </>
   );

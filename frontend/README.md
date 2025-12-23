@@ -1,73 +1,224 @@
-# React + TypeScript + Vite
+# Family Tree Application
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A comprehensive full-stack web application for managing and visualizing family genealogy, built with React, TypeScript, Express, and Prisma.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Authentication System**: Secure user registration and login with JWT tokens
+- **Family Tree Visualization**: Interactive family tree with visual connections between generations
+- **Member Management**: Add, edit, and manage family members with detailed profiles
+- **Generational View**: Browse family members organized by generations
+- **Multi-step Registration**: Comprehensive onboarding with user credentials and personal information
+- **Dark Mode**: Toggle between light and dark themes
+- **Responsive Design**: Mobile-friendly interface with collapsible sidebar
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Frontend
+- **React 19** with TypeScript
+- **Vite** - Fast build tool and dev server
+- **React Router** - Client-side routing
+- **Tailwind CSS 4** - Utility-first styling
+- **Lucide React** - Icon library
+- **Axios** - HTTP client
 
-## Expanding the ESLint configuration
+### Backend
+- **Node.js** with Express
+- **TypeScript** - Type-safe backend
+- **Prisma ORM** - Database management
+- **PostgreSQL/Neon** - Database
+- **bcryptjs** - Password hashing
+- **jsonwebtoken** - JWT authentication
+- **CORS** - Cross-origin resource sharing
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Project Structure
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+.
+├── frontend/
+│   ├── src/
+│   │   ├── assets/          # Static assets
+│   │   ├── auth/            # Authentication components
+│   │   ├── components/      # Reusable UI components
+│   │   ├── contexts/        # React contexts (Auth, Theme)
+│   │   ├── pages/           # Page components
+│   │   ├── services/        # API service layer
+│   │   ├── App.tsx          # Main app component
+│   │   └── main.tsx         # Entry point
+│   └── package.json
+│
+└── backend/
+    ├── prisma/              # Database schema
+    ├── server.ts            # Express server
+    └── package.json
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Getting Started
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Prerequisites
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- Node.js (v18 or higher)
+- npm or yarn
+- PostgreSQL database (or Neon serverless)
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd family-tree-app
+   ```
+
+2. **Install Backend Dependencies**
+   ```bash
+   cd backend
+   npm install
+   ```
+
+3. **Install Frontend Dependencies**
+   ```bash
+   cd ../frontend
+   npm install
+   ```
+
+### Configuration
+
+1. **Backend Environment Variables**
+   
+   Create a `.env` file in the `backend` directory:
+   ```env
+   DATABASE_URL="your-postgresql-connection-string"
+   JWT_SECRET="your-secret-key"
+   PORT=3000
+   ```
+
+2. **Frontend Environment Variables**
+   
+   Create a `.env` file in the `frontend` directory:
+   ```env
+   VITE_API_URL=http://localhost:3000
+   ```
+
+3. **Database Setup**
+   ```bash
+   cd backend
+   npx prisma generate
+   npx prisma db push
+   ```
+
+### Running the Application
+
+1. **Start the Backend Server**
+   ```bash
+   cd backend
+   npm run dev
+   ```
+   The API will run on `http://localhost:3000`
+
+2. **Start the Frontend Development Server**
+   ```bash
+   cd frontend
+   npm run dev
+   ```
+   The app will run on `http://localhost:5173`
+
+## API Endpoints
+
+### Authentication
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login user
+- `GET /api/auth/me` - Get current user
+- `POST /api/auth/link-person` - Link user to person profile
+
+### Persons
+- `GET /api/persons` - Get all persons
+- `GET /api/persons/:id` - Get person by ID
+- `POST /api/persons` - Create new person
+- `PUT /api/persons/:id` - Update person
+- `DELETE /api/persons/:id` - Delete person
+- `POST /api/persons/marriages` - Create marriage relationship
+
+## User Roles
+
+- **ADMIN** - Full access to all features
+- **MEMBER** - Can view and edit family data
+- **GUEST** - Read-only access
+
+## Authentication Flow
+
+1. User registers with email and password
+2. Multi-step form collects personal information
+3. JWT token issued upon successful registration/login
+4. Token stored in localStorage
+5. Protected routes require valid token
+6. Token automatically included in API requests
+
+## Features in Detail
+
+### Family Tree Visualization
+- Visual representation of family relationships
+- Horizontal connectors between spouses
+- Vertical connectors showing parent-child relationships
+- Person cards with photos and basic information
+
+### Member Profiles
+Each member profile includes:
+- Basic information (name, nicknames, maiden name)
+- Demographics (gender, date of birth)
+- Contact information (email, phone, address)
+- Biography and occupation
+- Family relationships (parents, spouse, children)
+
+### Theme Support
+- Light and dark mode toggle
+- Persisted theme preference in localStorage
+- Consistent styling across all components
+
+## Development
+
+### Building for Production
+
+**Frontend:**
+```bash
+cd frontend
+npm run build
 ```
+
+**Backend:**
+```bash
+cd backend
+npm run build
+```
+
+### Testing
+```bash
+cd backend
+npm test
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the ISC License.
+
+## Acknowledgments
+
+- Built with modern React best practices
+- Utilizes Prisma for type-safe database access
+- Styled with Tailwind CSS for rapid development
+- Icons provided by Lucide React
+
+## Support
+
+For issues and questions, please open an issue on the repository.
+
+---
+
+**© 2025 My Family**

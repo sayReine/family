@@ -6,7 +6,8 @@
   "scripts": {
   
     "test": "node test-api.js",
-    "dev": "nodemon server.ts"
+    "dev": "nodemon server.ts",
+    "create-admin": "ts-node scripts/createAdmin.js"
   },
   "keywords": [],
   "author": "",

@@ -13,5 +13,7 @@
     "moduleDetection": "force",
     "skipLibCheck": true,
     "allowImportingTsExtensions":true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
   }
 }

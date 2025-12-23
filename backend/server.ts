@@ -4,6 +4,7 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import authRoutes from './routes/auth.ts'
 import personRoutes from './routes/person.ts'
+import adminRoutes from './routes/admin.ts'
 
 
 dotenv.config()
@@ -17,6 +18,7 @@ app.use(express.json())
 // Routes
 app.use('/api/auth', authRoutes)
 app.use('/api/person', personRoutes)
+app.use('/api/admin', adminRoutes)
 
 // Health check
 app.get('/health', (req, res) => {
