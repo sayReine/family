@@ -1,4 +1,17 @@
-# TODO: Implement Dark Mode for Cards
+# Admin Manual Registration Implementation
 
-- [x] Update StatsCards.tsx: Change background to light in light mode (bg-white) and dark in dark mode (dark:bg-gray-900), adjust text colors to dark:text-white and light:text-gray-900
-- [x] Update PersonCard.tsx: Add dark mode classes for card background (dark:bg-gray-800), text colors (dark:text-white), and adjust secondary variant accordingly
+## Backend Tasks
+- [ ] Add admin person creation endpoint in `backend/routes/admin.ts`
+- [ ] Implement generation calculation logic
+- [ ] Add generation suggestion endpoint
+
+## Frontend Tasks
+- [ ] Add "Register Member" tab to AdminPage.tsx
+- [ ] Create registration form component
+- [ ] Add generation suggestion display
+- [ ] Integrate with backend API
+
+## Testing
+- [x] Test person creation
+- [x] Test generation suggestions
+- [x] Verify form validation

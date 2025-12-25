@@ -2,7 +2,7 @@ import { useState } from "react";
 import {  Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Sidebar from "./components/Sidebar";
-import { BackendAuthProvider } from "./contexts/BackendAuthContext";
+import { BackendAuthProvider, useBackendAuth } from "./contexts/BackendAuthContext";
 import Dashboard from "./pages/Dashboard";
 // import Overview from "./pages/Overview";
 import FamilyTree from "./pages/FamilyTree";
@@ -12,8 +12,10 @@ import Settings from "./pages/Settings";
 import ProfilePage from "./pages/ProfilePage";
 import Topbar from "./components/Topbar";
 import AdminPage from "./pages/AdminPage";
+import LoginPage from "./pages/LoginPage";
 
 function AppContent() {
+  const { isAuthenticated, isLoading, user } = useBackendAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -30,7 +32,6 @@ function AppContent() {
             <Route path="/generations" element={<Generations />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/admin" element={<AdminPage/>} />
           </Routes>
         </main>
       </div>

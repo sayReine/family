@@ -327,20 +327,12 @@ export const ProfileProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const registerAndSubmit = async () => {
     console.log('=== registerAndSubmit called ===');
-    
-    // Validation
+
+    // Validation (password validation already done in ProfilePage)
     if (!profileData.email) {
       throw new Error('Email is required for registration');
     }
-    
-    if (!profileData.password) {
-      throw new Error('Password is required for registration');
-    }
-    
-    if (profileData.password !== profileData.confirmPassword) {
-      throw new Error('Passwords do not match');
-    }
-    
+
     if (!profileData.firstName || !profileData.lastName) {
       throw new Error('First name and last name are required');
     }

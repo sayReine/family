@@ -1,25 +1,16 @@
 // backend/scripts/createAdmin.js
-// Simple script to create admin user - Run with: node scripts/createAdmin.js
+// Simple script to create admin user - Run with: node scripts/createAdmin.js [email] [password]
 
-const { PrismaClient } = require('@prisma/client')
-const bcrypt = require('bcryptjs')
-const readline = require('readline')
+import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcryptjs'
+import { createRequire } from 'module'
+
+const require = createRequire(import.meta.url)
 
 // Load environment variables
 require('dotenv').config()
 
 const prisma = new PrismaClient()
-
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-})
-
-function question(query) {
-  return new Promise((resolve) => {
-    rl.question(query, resolve)
-  })
-}
 
 async function createAdmin() {
   console.log('=== Create Admin User ===\n')
@@ -29,13 +20,27 @@ async function createAdmin() {
     await prisma.$connect()
     console.log('✅ Database connected\n')
 
-    // Get email
-    const email = await question('Enter admin email: ')
-    
-    if (!email || !email.includes('@')) {
+    // Get email from args or prompt
+    let email = process.argv[2]
+    let password = process.argv[3]
+
+    if (!email) {
+      console.error('❌ Email is required. Usage: node scripts/createAdmin.js <email> <password>')
+      process.exit(1)
+    }
+
+    if (!email.includes('@')) {
       console.error('❌ Invalid email address')
-      rl.close()
-      await prisma.$disconnect()
+      process.exit(1)
+    }
+
+    if (!password) {
+      console.error('❌ Password is required. Usage: node scripts/createAdmin.js <email> <password>')
+      process.exit(1)
+    }
+
+    if (password.length < 8) {
+      console.error('❌ Password must be at least 8 characters long')
       process.exit(1)
     }
 
@@ -46,44 +51,20 @@ async function createAdmin() {
 
     if (existingUser) {
       console.log('\n⚠️  User with this email already exists!')
-      
+
       if (existingUser.role === 'ADMIN') {
         console.log('   This user is already an admin.')
       } else {
-        const upgrade = await question('\nUpgrade this user to ADMIN? (yes/no): ')
-        
-        if (upgrade.toLowerCase() === 'yes' || upgrade.toLowerCase() === 'y') {
-          await prisma.user.update({
-            where: { email },
-            data: { role: 'ADMIN' }
-          })
-          console.log('\n✅ User upgraded to ADMIN successfully!')
-        }
+        console.log('   Upgrading user to ADMIN...')
+        await prisma.user.update({
+          where: { email },
+          data: { role: 'ADMIN' }
+        })
+        console.log('\n✅ User upgraded to ADMIN successfully!')
       }
-      
-      rl.close()
+
       await prisma.$disconnect()
       return
-    }
-
-    // Get password
-    const password = await question('Enter admin password (min 8 characters): ')
-    
-    if (!password || password.length < 8) {
-      console.error('❌ Password must be at least 8 characters long')
-      rl.close()
-      await prisma.$disconnect()
-      process.exit(1)
-    }
-
-    // Confirm password
-    const confirmPassword = await question('Confirm password: ')
-    
-    if (password !== confirmPassword) {
-      console.error('❌ Passwords do not match')
-      rl.close()
-      await prisma.$disconnect()
-      process.exit(1)
     }
 
     // Hash password
@@ -109,7 +90,7 @@ async function createAdmin() {
     console.log('\n✅ Admin user created successfully!')
     console.log('\n╔═══════════════════════════════════════════╗')
     console.log('║           ADMIN DETAILS                   ║')
-    console.log('╠═══════════════════════════════════════════╣')
+    console.log('╠══════════════════════════════════════════╣')
     console.log(`║ Email:    ${admin.email.padEnd(30)} ║`)
     console.log(`║ Role:     ${admin.role.padEnd(30)} ║`)
     console.log(`║ ID:       ${admin.id.substring(0, 20).padEnd(30)} ║`)
@@ -124,7 +105,6 @@ async function createAdmin() {
       console.error('   Cannot connect to database. Check your DATABASE_URL in .env')
     }
   } finally {
-    rl.close()
     await prisma.$disconnect()
   }
 }

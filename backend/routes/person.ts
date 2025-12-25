@@ -230,7 +230,7 @@ router.post('/profile', authenticate, async (req: AuthRequest, res) => {
         dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
         isDeceased: isDeceased || false,
         dateOfDeath: (isDeceased && dateOfDeath) ? new Date(dateOfDeath) : null,
-        
+
         // Contact
         email: email || null,
         phone: phone || null,
@@ -238,16 +238,16 @@ router.post('/profile', authenticate, async (req: AuthRequest, res) => {
         city: city || null,
         state: state || null,
         country: country || null,
-        
+
         // Family relationships
         biologicalFatherId: biologicalFatherId || null,
         biologicalMotherId: biologicalMotherId || null,
-        
+
         // Life & Story
         bio: bio || null,
         occupation: occupation || null,
         profilePhoto: profilePhoto || null,
-        
+
         createdBy: userId,
         updatedBy: userId
       }

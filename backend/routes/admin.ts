@@ -419,4 +419,164 @@ router.get('/audit-logs', authenticate, requireAdmin, async (req: AuthRequest, r
   }
 })
 
+// ==================== MANUAL PERSON REGISTRATION ROUTES ====================
+
+// Helper function to calculate generation level
+const calculateGeneration = async (biologicalFatherId?: string, biologicalMotherId?: string): Promise<number> => {
+  if (!biologicalFatherId && !biologicalMotherId) {
+    return 1; // Root generation
+  }
+
+  let parentGeneration = 0;
+
+  // Check father's generation
+  if (biologicalFatherId) {
+    const father = await prisma.person.findUnique({
+      where: { id: biologicalFatherId },
+      select: { id: true }
+    });
+
+    if (father) {
+      // Recursively find the highest generation among ancestors
+      const fatherGen = await getPersonGeneration(biologicalFatherId);
+      parentGeneration = Math.max(parentGeneration, fatherGen);
+    }
+  }
+
+  // Check mother's generation
+  if (biologicalMotherId) {
+    const mother = await prisma.person.findUnique({
+      where: { id: biologicalMotherId },
+      select: { id: true }
+    });
+
+    if (mother) {
+      const motherGen = await getPersonGeneration(biologicalMotherId);
+      parentGeneration = Math.max(parentGeneration, motherGen);
+    }
+  }
+
+  return parentGeneration + 1;
+};
+
+// Helper function to get a person's generation
+const getPersonGeneration = async (personId: string): Promise<number> => {
+  const person = await prisma.person.findUnique({
+    where: { id: personId },
+    select: {
+      biologicalFatherId: true,
+      biologicalMotherId: true
+    }
+  });
+
+  if (!person) return 1;
+
+  return await calculateGeneration(person.biologicalFatherId || undefined, person.biologicalMotherId || undefined);
+};
+
+// Get generation suggestion for new person
+router.get('/register/generation-suggestion', authenticate, requireAdmin, async (req: AuthRequest, res) => {
+  try {
+    const { biologicalFatherId, biologicalMotherId } = req.query;
+
+    const suggestedGeneration = await calculateGeneration(
+      biologicalFatherId as string | undefined,
+      biologicalMotherId as string | undefined
+    );
+
+    res.json({ suggestedGeneration });
+  } catch (error) {
+    console.error('Get generation suggestion error:', error);
+    res.status(500).json({ error: 'Failed to calculate generation suggestion' });
+  }
+});
+
+// Admin manual person registration
+router.post('/register/person', authenticate, requireAdmin, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user!.id;
+
+    const {
+      firstName,
+      middleName,
+      lastName,
+      maidenName,
+      nicknames,
+      gender,
+      dateOfBirth,
+      dateOfDeath,
+      isDeceased,
+      email,
+      phone,
+      address,
+      city,
+      state,
+      country,
+      bio,
+      occupation,
+      biologicalFatherId,
+      biologicalMotherId,
+      profilePhoto
+    } = req.body;
+
+    // Validate required fields
+    if (!firstName || !lastName) {
+      return res.status(400).json({
+        error: 'First name and last name are required'
+      });
+    }
+
+    // Calculate generation
+    const generation = await calculateGeneration(biologicalFatherId, biologicalMotherId);
+
+    // Create person
+    const person = await prisma.person.create({
+      data: {
+        firstName,
+        middleName: middleName || null,
+        lastName,
+        maidenName: maidenName || null,
+        nicknames: Array.isArray(nicknames) ? nicknames : [],
+        gender: gender || null,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+        dateOfDeath: dateOfDeath ? new Date(dateOfDeath) : null,
+        isDeceased: isDeceased || false,
+        email: email || null,
+        phone: phone || null,
+        address: address || null,
+        city: city || null,
+        state: state || null,
+        country: country || null,
+        bio: bio || null,
+        occupation: occupation || null,
+        biologicalFatherId: biologicalFatherId || null,
+        biologicalMotherId: biologicalMotherId || null,
+        profilePhoto: profilePhoto || null,
+        profileStatus: 'APPROVED', // Admin-created profiles are auto-approved
+        createdBy: userId,
+        updatedBy: userId
+      }
+    });
+
+    // Log the creation
+    await logAudit(
+      userId,
+      'CREATE',
+      'Person',
+      person.id,
+      person.id,
+      { action: 'admin_manual_registration', generation },
+      req.ip
+    );
+
+    res.status(201).json({
+      person,
+      generation
+    });
+  } catch (error) {
+    console.error('Admin person registration error:', error);
+    res.status(500).json({ error: 'Failed to register person' });
+  }
+});
+
 export default router

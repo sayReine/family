@@ -238,7 +238,7 @@ const AuthForm: React.FC = () => {
             value={formData.email}
             onChange={handleChange}
             onKeyPress={handleKeyPress}
-            className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
             placeholder="you@example.com"
           />
         </div>
@@ -257,7 +257,7 @@ const AuthForm: React.FC = () => {
             value={formData.password}
             onChange={handleChange}
             onKeyPress={handleKeyPress}
-            className="w-full pl-11 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full pl-11 pr-12 py-3 border border-gray-300 rounded-lg  focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
             placeholder="••••••••"
           />
           <button
@@ -295,7 +295,7 @@ const AuthForm: React.FC = () => {
             value={formData.email}
             onChange={handleChange}
             onKeyPress={handleKeyPress}
-            className={`w-full pl-11 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 ${
+            className={`w-full pl-11 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 text-black ${
               errors.email ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
             }`}
             placeholder="you@example.com"
@@ -317,7 +317,7 @@ const AuthForm: React.FC = () => {
             value={formData.password}
             onChange={handleChange}
             onKeyPress={handleKeyPress}
-            className={`w-full pl-11 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 ${
+            className={`w-full pl-11 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 text-black ${
               errors.password ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
             }`}
             placeholder="••••••••"
@@ -346,7 +346,7 @@ const AuthForm: React.FC = () => {
             value={formData.confirmPassword}
             onChange={handleChange}
             onKeyPress={handleKeyPress}
-            className={`w-full pl-11 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 ${
+            className={`w-full pl-11 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 text-black ${
               errors.confirmPassword ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
             }`}
             placeholder="••••••••"
@@ -385,7 +385,7 @@ const AuthForm: React.FC = () => {
             name="firstName"
             value={formData.firstName}
             onChange={handleChange}
-            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 ${
+            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 text-black ${
               errors.firstName ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
             }`}
           />
@@ -402,7 +402,7 @@ const AuthForm: React.FC = () => {
             name="middleName"
             value={formData.middleName}
             onChange={handleChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
           />
         </div>
       </div>
@@ -418,7 +418,7 @@ const AuthForm: React.FC = () => {
             name="lastName"
             value={formData.lastName}
             onChange={handleChange}
-            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 ${
+            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 text-black ${
               errors.lastName ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
             }`}
           />
@@ -435,7 +435,7 @@ const AuthForm: React.FC = () => {
             name="maidenName"
             value={formData.maidenName}
             onChange={handleChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
           />
         </div>
       </div>
@@ -450,7 +450,7 @@ const AuthForm: React.FC = () => {
           name="nicknames"
           value={formData.nicknames}
           onChange={handleChange}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
           placeholder="e.g., Mike, Mikey"
         />
       </div>
@@ -465,7 +465,7 @@ const AuthForm: React.FC = () => {
             name="gender"
             value={formData.gender}
             onChange={handleChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
           >
             <option value="">Select...</option>
             <option value="MALE">Male</option>
@@ -484,7 +484,7 @@ const AuthForm: React.FC = () => {
             name="dateOfBirth"
             value={formData.dateOfBirth}
             onChange={handleChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
           />
         </div>
       </div>

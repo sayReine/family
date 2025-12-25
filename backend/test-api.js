@@ -1,4 +1,4 @@
-const fetch = require('node-fetch'); // or use built-in fetch if Node 18+
+undconst fetch = require('node-fetch'); // or use built-in fetch if Node 18+
 
 const BASE_URL = 'http://localhost:3000';
 
