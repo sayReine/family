@@ -32,6 +32,17 @@ function AppContent() {
             <Route path="/generations" element={<Generations />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/admin" element={
+              isLoading ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600"></div>
+                </div>
+              ) : !isAuthenticated || user?.role !== 'ADMIN' ? (
+                <LoginPage />
+              ) : (
+                <AdminPage />
+              )
+            } />
           </Routes>
         </main>
       </div>
