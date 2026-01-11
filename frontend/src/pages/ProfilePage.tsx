@@ -1,19 +1,33 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronRight, ChevronLeft, Save, Send, CheckCircle, XCircle, Clock, AlertCircle, UserPlus } from 'lucide-react';
-import { ProfileProvider, useProfile } from '../contexts/ProfileContext';
-import { useBackendAuth } from '../contexts/BackendAuthContext';
-import IdentitySection from '../components/profile/IdentitySection';
-import ContactSection from '../components/profile/ContactSection';
-import FamilyRelationshipsSection from '../components/profile/FamilyRelationshipSection';
-import ChildrenSection from '../components/profile/ChildrenSection';
-import LifeStorySection from '../components/profile/LifeStorySection';
+import React, { useState, useEffect } from "react";
+import {
+  ChevronRight,
+  ChevronLeft,
+  Save,
+  Send,
+  CheckCircle,
+  XCircle,
+  Clock,
+  AlertCircle,
+  UserPlus,
+} from "lucide-react";
+import {
+  ProfileProvider,
+  useProfile,
+  type ProfileStatus,
+} from "../contexts/ProfileContext";
+import { useBackendAuth } from "../contexts/BackendAuthContext";
+import IdentitySection from "../components/profile/IdentitySection";
+import ContactSection from "../components/profile/ContactSection";
+import FamilyRelationshipsSection from "../components/profile/FamilyRelationshipSection";
+import ChildrenSection from "../components/profile/ChildrenSection";
+import LifeStorySection from "../components/profile/LifeStorySection";
 
 const sections = [
-  { id: 1, title: 'Identity', required: true },
-  { id: 2, title: 'Contact & Location', required: false },
-  { id: 3, title: 'Family Relationships', required: true },
-  { id: 4, title: 'Children', required: false },
-  { id: 5, title: 'Life & Story', required: false },
+  { id: 1, title: "Identity", required: true },
+  { id: 2, title: "Contact & Location", required: false },
+  { id: 3, title: "Family Relationships", required: true },
+  { id: 4, title: "Children", required: false },
+  { id: 5, title: "Life & Story", required: false },
 ];
 
 const ProfilePageContent: React.FC = () => {
@@ -24,6 +38,7 @@ const ProfilePageContent: React.FC = () => {
     submitProfile,
     saveDraft,
     registerAndSubmit,
+    loadProfile,
     isLoading,
     isNewUser,
     setIsNewUser,
@@ -31,40 +46,71 @@ const ProfilePageContent: React.FC = () => {
   } = useProfile();
 
   const { isAuthenticated } = useBackendAuth();
-  
+
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showApprovalConfirm, setShowApprovalConfirm] = useState(false);
+  const [previousStatus, setPreviousStatus] = useState<ProfileStatus | null>(
+    null
+  );
 
   // Detect if user is new (not authenticated)
   useEffect(() => {
     if (!isAuthenticated) {
       setIsNewUser(true);
+    } else {
+      // Load existing profile data for authenticated users
+      loadProfile();
     }
-  }, [isAuthenticated, setIsNewUser]);
+  }, [isAuthenticated, setIsNewUser, loadProfile]);
+
+  // Detect status changes to show approval confirmation
+  useEffect(() => {
+    if (
+      profileData.status === "APPROVED" &&
+      previousStatus === "PENDING" &&
+      !isNewUser
+    ) {
+      setShowApprovalConfirm(true);
+    }
+    setPreviousStatus(profileData.status);
+  }, [profileData.status, previousStatus, isNewUser]);
+
+  // Periodically check for profile status updates (every 30 seconds)
+  useEffect(() => {
+    if (isAuthenticated && !isNewUser) {
+      const interval = setInterval(() => {
+        loadProfile();
+      }, 30000); // Check every 30 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated, isNewUser, loadProfile]);
 
   const handleNext = () => {
     if (currentSection < sections.length) {
       setCurrentSection(currentSection + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
   const handleBack = () => {
     if (currentSection > 1) {
       setCurrentSection(currentSection - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
   const handleSaveDraft = async () => {
     try {
-      console.log('handleSaveDraft called');
+      console.log("handleSaveDraft called");
       await saveDraft();
-      alert('Draft saved successfully!');
+      alert("Draft saved successfully!");
     } catch (error) {
-      console.error('handleSaveDraft error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error("handleSaveDraft error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       alert(`Failed to save draft: ${errorMessage}`);
     }
   };
@@ -74,58 +120,75 @@ const ProfilePageContent: React.FC = () => {
       if (isNewUser) {
         // Validate registration fields
         if (!profileData.email) {
-          alert('Email is required for registration');
+          alert("Email is required for registration");
           return;
         }
-        
+
         if (!password) {
-          alert('Password is required for registration');
+          alert("Password is required for registration");
           return;
         }
-        
+
         if (password !== confirmPassword) {
-          alert('Passwords do not match');
+          alert("Passwords do not match");
           return;
         }
-        
+
         if (password.length < 6) {
-          alert('Password must be at least 6 characters long');
+          alert("Password must be at least 6 characters long");
           return;
         }
 
         // Update profile data with password
         updateContact({ password, confirmPassword });
-        
+
         // Register and submit
         await registerAndSubmit();
-        alert('Registration successful! Your profile has been submitted for review.');
+        alert(
+          "Registration successful! Your profile has been submitted for review."
+        );
       } else {
         // Just submit profile for existing users
         await submitProfile();
-        alert('Profile submitted for review!');
+        alert("Profile submitted for review!");
       }
-      
+
       setShowSubmitConfirm(false);
     } catch (error) {
-      console.error('Submit error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error("Submit error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       alert(`Failed to submit: ${errorMessage}`);
     }
   };
 
   const getStatusBadge = () => {
     const statusConfig = {
-      DRAFT: { icon: Clock, text: 'Draft', color: 'bg-gray-100 text-gray-700' },
-      PENDING: { icon: Clock, text: 'Pending Review', color: 'bg-yellow-100 text-yellow-700' },
-      APPROVED: { icon: CheckCircle, text: 'Approved', color: 'bg-green-100 text-green-700' },
-      REJECTED: { icon: XCircle, text: 'Rejected', color: 'bg-red-100 text-red-700' },
+      DRAFT: { icon: Clock, text: "Draft", color: "bg-gray-100 text-gray-700" },
+      PENDING: {
+        icon: Clock,
+        text: "Pending Review",
+        color: "bg-yellow-100 text-yellow-700",
+      },
+      APPROVED: {
+        icon: CheckCircle,
+        text: "Approved",
+        color: "bg-green-100 text-green-700",
+      },
+      REJECTED: {
+        icon: XCircle,
+        text: "Rejected",
+        color: "bg-red-100 text-red-700",
+      },
     };
 
     const config = statusConfig[profileData.status];
     const Icon = config.icon;
 
     return (
-      <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${config.color}`}>
+      <div
+        className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${config.color}`}
+      >
         <Icon className="w-4 h-4" />
         {config.text}
       </div>
@@ -157,13 +220,14 @@ const ProfilePageContent: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-50">
-                {isNewUser ? 'Register & Create Profile' : 'Profile Information'}
+                {isNewUser
+                  ? "Register & Create Profile"
+                  : "Profile Information"}
               </h1>
               <p className="text-gray-50 mt-1">
-                {isNewUser 
-                  ? 'Create your account and join the family tree'
-                  : 'Complete your profile to join the family tree'
-                }
+                {isNewUser
+                  ? "Create your account and join the family tree"
+                  : "Complete your profile to join the family tree"}
               </p>
             </div>
             {!isNewUser && getStatusBadge()}
@@ -175,19 +239,27 @@ const ProfilePageContent: React.FC = () => {
               <UserPlus className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-blue-800">
                 <p className="font-medium">New User Registration</p>
-                <p className="mt-1">You'll need to provide an email and password to create your account. Make sure to use the same email in the Contact section.</p>
+                <p className="mt-1">
+                  You'll need to provide an email and password to create your
+                  account. Make sure to use the same email in the Contact
+                  section.
+                </p>
               </div>
             </div>
           )}
 
           {/* Rejection Notice */}
-          {profileData.status === 'REJECTED' && profileData.rejectionReason && (
+          {profileData.status === "REJECTED" && profileData.rejectionReason && (
             <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-red-800">
                 <p className="font-medium">Profile was rejected</p>
-                <p className="mt-1"><strong>Reason:</strong> {profileData.rejectionReason}</p>
-                <p className="mt-2">Please make the necessary changes and resubmit.</p>
+                <p className="mt-1">
+                  <strong>Reason:</strong> {profileData.rejectionReason}
+                </p>
+                <p className="mt-2">
+                  Please make the necessary changes and resubmit.
+                </p>
               </div>
             </div>
           )}
@@ -205,7 +277,9 @@ const ProfilePageContent: React.FC = () => {
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
                 className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${(currentSection / sections.length) * 100}%` }}
+                style={{
+                  width: `${(currentSection / sections.length) * 100}%`,
+                }}
               />
             </div>
           </div>
@@ -218,12 +292,14 @@ const ProfilePageContent: React.FC = () => {
                 onClick={() => setCurrentSection(section.id)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   currentSection === section.id
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? "bg-indigo-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
                 {section.title}
-                {section.required && <span className="text-red-500 ml-1">*</span>}
+                {section.required && (
+                  <span className="text-red-500 ml-1">*</span>
+                )}
               </button>
             ))}
           </div>
@@ -265,8 +341,12 @@ const ProfilePageContent: React.FC = () => {
                 disabled={isLoading}
                 className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
               >
-                {isNewUser ? <UserPlus className="w-5 h-5" /> : <Send className="w-5 h-5" />}
-                {isNewUser ? 'Register & Submit' : 'Submit for Review'}
+                {isNewUser ? (
+                  <UserPlus className="w-5 h-5" />
+                ) : (
+                  <Send className="w-5 h-5" />
+                )}
+                {isNewUser ? "Register & Submit" : "Submit for Review"}
               </button>
             )}
           </div>
@@ -291,18 +371,26 @@ const ProfilePageContent: React.FC = () => {
             <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 bg-green-100 rounded-lg">
-                  {isNewUser ? <UserPlus className="w-6 h-6 text-green-600" /> : <Send className="w-6 h-6 text-green-600" />}
+                  {isNewUser ? (
+                    <UserPlus className="w-6 h-6 text-green-600" />
+                  ) : (
+                    <Send className="w-6 h-6 text-green-600" />
+                  )}
                 </div>
                 <h3 className="text-xl font-bold text-gray-900">
-                  {isNewUser ? 'Create Account & Submit Profile' : 'Submit Profile for Review'}
+                  {isNewUser
+                    ? "Create Account & Submit Profile"
+                    : "Submit Profile for Review"}
                 </h3>
               </div>
 
               {isNewUser && (
                 <div className="space-y-4 mb-6">
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-sm font-medium text-blue-900 mb-3">Create Your Account</p>
-                    
+                    <p className="text-sm font-medium text-blue-900 mb-3">
+                      Create Your Account
+                    </p>
+
                     <div className="space-y-3">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -310,12 +398,14 @@ const ProfilePageContent: React.FC = () => {
                         </label>
                         <input
                           type="email"
-                          value={profileData.email || ''}
+                          value={profileData.email || ""}
                           disabled
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
                           placeholder="Email from Contact section"
                         />
-                        <p className="text-xs text-gray-500 mt-1">From your Contact section</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          From your Contact section
+                        </p>
                       </div>
 
                       <div>
@@ -334,7 +424,8 @@ const ProfilePageContent: React.FC = () => {
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Confirm Password <span className="text-red-500">*</span>
+                          Confirm Password{" "}
+                          <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="password"
@@ -352,18 +443,26 @@ const ProfilePageContent: React.FC = () => {
 
               <div className="space-y-4 text-gray-700">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm font-medium text-blue-900">What happens next?</p>
+                  <p className="text-sm font-medium text-blue-900">
+                    What happens next?
+                  </p>
                   <ul className="mt-2 space-y-2 text-sm text-blue-800">
                     {isNewUser && <li>• Your account will be created</li>}
-                    <li>• Your profile will be reviewed by a family administrator</li>
-                    <li>• You'll be notified once it's approved or if changes are needed</li>
+                    <li>
+                      • Your profile will be reviewed by a family administrator
+                    </li>
+                    <li>
+                      • You'll be notified once it's approved or if changes are
+                      needed
+                    </li>
                     <li>• After approval, you'll appear in the family tree</li>
                   </ul>
                 </div>
 
                 {!isNewUser && (
                   <p className="text-sm text-gray-600">
-                    You can still save as draft and make changes before submitting.
+                    You can still save as draft and make changes before
+                    submitting.
                   </p>
                 )}
               </div>
@@ -377,10 +476,114 @@ const ProfilePageContent: React.FC = () => {
                 </button>
                 <button
                   onClick={handleSubmit}
-                  disabled={isLoading || (isNewUser && (!password || !confirmPassword))}
+                  disabled={
+                    isLoading || (isNewUser && (!password || !confirmPassword))
+                  }
                   className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
                 >
-                  {isLoading ? 'Processing...' : isNewUser ? 'Create & Submit' : 'Submit Profile'}
+                  {isLoading
+                    ? "Processing..."
+                    : isNewUser
+                    ? "Create & Submit"
+                    : "Submit Profile"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Approval Confirmation Modal */}
+        {showApprovalConfirm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900">
+                  Profile Approved!
+                </h3>
+              </div>
+
+              <div className="space-y-4">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <p className="text-sm font-medium text-green-900 mb-3">
+                    Congratulations!
+                  </p>
+                  <p className="text-sm text-green-800">
+                    Your profile has been reviewed and approved by a family
+                    administrator. You now have full access to the family tree
+                    and can view and connect with other family members.
+                  </p>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-gray-900 mb-3">
+                    Your Profile Information
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Name:</span>
+                      <span className="font-medium">
+                        {profileData.firstName}{" "}
+                        {profileData.middleName
+                          ? `${profileData.middleName} `
+                          : ""}
+                        {profileData.lastName}
+                      </span>
+                    </div>
+                    {profileData.email && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Email:</span>
+                        <span className="font-medium">{profileData.email}</span>
+                      </div>
+                    )}
+                    {profileData.dateOfBirth && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Date of Birth:</span>
+                        <span className="font-medium">
+                          {new Date(
+                            profileData.dateOfBirth
+                          ).toLocaleDateString()}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Status:</span>
+                      <span className="font-medium text-green-600">
+                        {profileData.status}
+                      </span>
+                    </div>
+                    {profileData.bio && (
+                      <div className="flex flex-col">
+                        <span className="text-gray-600 mb-1">Bio:</span>
+                        <span className="font-medium text-sm bg-white p-2 rounded border">
+                          {profileData.bio}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm font-medium text-blue-900 mb-2">
+                    What's Next?
+                  </p>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>• Explore the family tree to find relatives</li>
+                    <li>• Connect with other family members</li>
+                    <li>• Add more details to your profile anytime</li>
+                    <li>• Share your family stories and photos</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setShowApprovalConfirm(false)}
+                  className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  Get Started
                 </button>
               </div>
             </div>
@@ -390,7 +593,7 @@ const ProfilePageContent: React.FC = () => {
         {/* Help Text */}
         <div className="mt-6 text-center text-sm text-gray-600">
           <p>
-            Need help? Contact a family administrator or 
+            Need help? Contact a family administrator or
             <button className="text-indigo-600 hover:text-indigo-700 ml-1">
               view our guide
             </button>
