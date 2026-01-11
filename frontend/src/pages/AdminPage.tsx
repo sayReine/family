@@ -29,11 +29,33 @@ interface Stats {
   totalPeople: number;
 }
 
+interface FormData {
+  firstName: string;
+  lastName: string;
+  middleName: string;
+  maidenName: string;
+  gender: string;
+  dateOfBirth: string;
+  isDeceased: boolean;
+  dateOfDeath: string;
+  biologicalFatherId: string;
+  biologicalMotherId: string;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  occupation: string;
+  bio: string;
+  profilePhoto: string;
+}
+
 const AdminPage: React.FC = () => {
   const { user, token, isAuthenticated, isLoading: isAuthLoading } = useBackendAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<'users' | 'people' | 'register'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'people' | 'register' | 'reviews'>('users');
   const [users, setUsers] = useState<UserManagement[]>([]);
   const [stats, setStats] = useState<Stats>({
     totalUsers: 0,
@@ -42,6 +64,74 @@ const AdminPage: React.FC = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [photoType, setPhotoType] = useState<'upload' | 'url'>('url');
+
+  const [formData, setFormData] = useState<FormData>({
+    firstName: '',
+    lastName: '',
+    middleName: '',
+    maidenName: '',
+    gender: '',
+    dateOfBirth: '',
+    isDeceased: false,
+    dateOfDeath: '',
+    biologicalFatherId: '',
+    biologicalMotherId: '',
+    email: null,
+    phone: null,
+    address: null,
+    city: null,
+    state: null,
+    country: null,
+    occupation: '',
+    bio: '',
+    profilePhoto: '',
+  });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Prepare data for submission
+    const submissionData = { ...formData };
+
+    // If deceased, exclude contact fields
+    if (formData.isDeceased) {
+      submissionData.email = null;
+      submissionData.phone = null;
+      submissionData.address = null;
+      submissionData.city = null;
+      submissionData.state = null;
+      submissionData.country = null;
+    }
+
+    // TODO: Send to backend API
+    console.log('Submitting data:', submissionData);
+    // Example: await fetch(`${API_URL}/api/admin/register-person`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(submissionData) });
+  };
+
+  // Clear contact fields when deceased is checked
+  useEffect(() => {
+    if (formData.isDeceased) {
+      setFormData(prev => ({
+        ...prev,
+        email: '',
+        phone: '',
+        address: '',
+        city: '',
+        state: '',
+        country: '',
+      }));
+    }
+  }, [formData.isDeceased]);
 
   // Check if user is admin
   useEffect(() => {
@@ -270,7 +360,7 @@ const AdminPage: React.FC = () => {
                 <p className="text-gray-600">Add family members directly to the database</p>
               </div>
 
-              <form className="max-w-2xl mx-auto space-y-6">
+              <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-6">
                 {/* Identity Section */}
                 <div className="bg-gray-50 p-6 rounded-lg">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Identity</h3>
@@ -279,6 +369,9 @@ const AdminPage: React.FC = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
                       <input
                         type="text"
+                        name="firstName"
+                        value={formData.firstName}
+                        onChange={handleInputChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900"
                         required
                       />
@@ -287,6 +380,9 @@ const AdminPage: React.FC = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
                       <input
                         type="text"
+                        name="lastName"
+                        value={formData.lastName}
+                        onChange={handleInputChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900"
                         required
                       />
@@ -295,6 +391,9 @@ const AdminPage: React.FC = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Middle Name</label>
                       <input
                         type="text"
+                        name="middleName"
+                        value={formData.middleName}
+                        onChange={handleInputChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900"
                       />
                     </div>
@@ -302,12 +401,20 @@ const AdminPage: React.FC = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Maiden Name</label>
                       <input
                         type="text"
+                        name="maidenName"
+                        value={formData.maidenName}
+                        onChange={handleInputChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
-                      <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900">
+                      <select
+                        name="gender"
+                        value={formData.gender}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900"
+                      >
                         <option value="">Select Gender</option>
                         <option value="MALE">Male</option>
                         <option value="FEMALE">Female</option>
@@ -318,9 +425,36 @@ const AdminPage: React.FC = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
                       <input
                         type="date"
+                        name="dateOfBirth"
+                        value={formData.dateOfBirth}
+                        onChange={handleInputChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900"
                       />
                     </div>
+                    <div>
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          name="isDeceased"
+                          checked={formData.isDeceased}
+                          onChange={handleInputChange}
+                          className="mr-2"
+                        />
+                        <span className="text-sm font-medium text-gray-700">Deceased</span>
+                      </label>
+                    </div>
+                    {formData.isDeceased && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Date of Death</label>
+                        <input
+                          type="date"
+                          name="dateOfDeath"
+                          value={formData.dateOfDeath}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -360,42 +494,66 @@ const AdminPage: React.FC = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                       <input
                         type="email"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900"
+                        name="email"
+                        value={formData.email ?? ''}
+                        onChange={handleInputChange}
+                        disabled={formData.isDeceased}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                       <input
                         type="tel"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900"
+                        name="phone"
+                        value={formData.phone ?? ''}
+                        onChange={handleInputChange}
+                        disabled={formData.isDeceased}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
                       />
                     </div>
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
                       <input
                         type="text"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900"
+                        name="address"
+                        value={formData.address ?? ''}
+                        onChange={handleInputChange}
+                        disabled={formData.isDeceased}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
                       <input
                         type="text"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900"
+                        name="city"
+                        value={formData.city ?? ''}
+                        onChange={handleInputChange}
+                        disabled={formData.isDeceased}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
                       <input
                         type="text"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900"
+                        name="state"
+                        value={formData.state ?? ''}
+                        onChange={handleInputChange}
+                        disabled={formData.isDeceased}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
                       <input
                         type="text"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900"
+                        name="country"
+                        value={formData.country ?? ''}
+                        onChange={handleInputChange}
+                        disabled={formData.isDeceased}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
                       />
                     </div>
                   </div>
@@ -409,6 +567,9 @@ const AdminPage: React.FC = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Occupation</label>
                       <input
                         type="text"
+                        name="occupation"
+                        value={formData.occupation}
+                        onChange={handleInputChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900"
                       />
                     </div>
@@ -416,6 +577,9 @@ const AdminPage: React.FC = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
                       <textarea
                         rows={4}
+                        name="bio"
+                        value={formData.bio}
+                        onChange={handleInputChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900"
                         placeholder="Brief biography..."
                       />

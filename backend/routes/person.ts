@@ -248,6 +248,10 @@ router.post('/profile', authenticate, async (req: AuthRequest, res) => {
         occupation: occupation || null,
         profilePhoto: profilePhoto || null,
 
+        // Profile status for admin review
+        profileStatus: 'PENDING',
+        submittedAt: new Date(),
+
         createdBy: userId,
         updatedBy: userId
       }

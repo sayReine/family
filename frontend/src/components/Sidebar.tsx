@@ -1,4 +1,4 @@
-import { User, User2 } from "lucide-react";
+import { User } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 interface SidebarProps {

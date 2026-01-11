@@ -326,6 +326,75 @@ router.delete('/users/:userId', authenticate, requireAdmin, async (req: AuthRequ
   }
 })
 
+// Get all admins
+router.get('/admins', authenticate, requireAdmin, async (req: AuthRequest, res) => {
+  try {
+    const { page = '1', limit = '50', search = '' } = req.query
+
+    const skip = (parseInt(page as string) - 1) * parseInt(limit as string)
+    const take = parseInt(limit as string)
+
+    const where = {
+      role: 'ADMIN',
+      ...(search
+        ? {
+            OR: [
+              { email: { contains: search as string, mode: 'insensitive' as const } },
+              { person: { 
+                firstName: { contains: search as string, mode: 'insensitive' as const }
+              }},
+              { person: { 
+                lastName: { contains: search as string, mode: 'insensitive' as const }
+              }}
+            ]
+          }
+        : {})
+    }
+
+    const [admins, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        skip,
+        take,
+        orderBy: {
+          createdAt: 'desc'
+        },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          personId: true,
+          person: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              profilePhoto: true
+            }
+          },
+          isActive: true,
+          createdAt: true,
+          lastLoginAt: true
+        }
+      }),
+      prisma.user.count({ where })
+    ])
+
+    res.json({
+      admins,
+      pagination: {
+        total,
+        page: parseInt(page as string),
+        limit: parseInt(limit as string),
+        totalPages: Math.ceil(total / parseInt(limit as string))
+      }
+    })
+  } catch (error) {
+    console.error('Get admins error:', error)
+    res.status(500).json({ error: 'Failed to fetch admins' })
+  }
+})
+
 // ==================== STATISTICS ROUTES ====================
 
 // Get admin statistics

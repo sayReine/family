@@ -16,7 +16,7 @@ const searchPersons = async (query: string): Promise<Array<{ id: string; name: s
 };
 
 const ChildrenSection: React.FC = () => {
-  const { profileData, updateChildren } = useProfile();
+  const { updateChildren } = useProfile();
   
   const [hasChildren, setHasChildren] = useState<boolean | null>(null);
   const [childSearch, setChildSearch] = useState('');
