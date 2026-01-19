@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Baby, Search, X, Info } from 'lucide-react';
-import { useProfile } from '../../contexts/ProfileContext';
+import { useProfile } from '../../hooks/useProfile';
 
 // Mock search function
 const searchPersons = async (query: string): Promise<Array<{ id: string; name: string; birthYear?: number }>> => {

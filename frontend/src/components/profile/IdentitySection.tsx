@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, X, Info } from 'lucide-react';
-import { useProfile } from '../../contexts/ProfileContext';
+import { useProfile } from '../../hooks/useProfile';
 
 const IdentitySection: React.FC = () => {
   const { profileData, updateIdentity, addNickname, removeNickname } = useProfile();

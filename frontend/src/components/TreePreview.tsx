@@ -1,5 +1,11 @@
+interface PersonNode {
+  name: string;
+  spouse: string | null;
+  children?: PersonNode[];
+}
+
 export default function TreePreview() {
-  const familyTree = {
+  const familyTree: PersonNode = {
     name: "John Smith",
     spouse: "Jane Smith",
     children: [
@@ -29,7 +35,7 @@ export default function TreePreview() {
     ]
   };
 
-  const renderPerson = (person: any, level: number = 0) => (
+  const renderPerson = (person: PersonNode, level: number = 0) => (
     <div key={person.name} className={`flex flex-col items-center ${level > 0 ? 'mt-4' : ''}`}>
       <div className="bg-blue-100 dark:bg-blue-900 border-2 border-blue-300 dark:border-blue-700 rounded-lg p-3 text-center min-w-[120px]">
         <div className="font-semibold text-gray-900 dark:text-white">{person.name}</div>
@@ -41,7 +47,7 @@ export default function TreePreview() {
       </div>
       {person.children && person.children.length > 0 && (
         <div className="flex flex-wrap justify-center gap-4 mt-4">
-          {person.children.map((child: any) => renderPerson(child, level + 1))}
+          {person.children.map((child: PersonNode) => renderPerson(child, level + 1))}
         </div>
       )}
     </div>

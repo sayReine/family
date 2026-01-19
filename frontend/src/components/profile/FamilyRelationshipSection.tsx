@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Users, Search, Plus, X, AlertCircle, Heart } from 'lucide-react';
-import { useProfile } from '../../contexts/ProfileContext';
+import { useProfile } from '../../hooks/useProfile';
 
 // Mock search function - replace with actual API call
 const searchPersons = async (query: string): Promise<Array<{ id: string; name: string; birthYear?: number }>> => {
@@ -300,7 +300,7 @@ const FamilyRelationshipsSection: React.FC = () => {
               {/* Search Results */}
               {spouseResults.length > 0 && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                  {spouseResults.map(person => (
+                  {spouseResults.map((person: { id: string; name: string; birthYear?: number }) => (
                     <button
                       key={person.id}
                       onClick={() => selectSpouse(person)}
@@ -335,7 +335,7 @@ const FamilyRelationshipsSection: React.FC = () => {
                 </label>
                 <select
                   value={newSpouse.status}
-                  onChange={(e) => setNewSpouse(prev => ({ ...prev, status: e.target.value as any }))}
+                  onChange={(e) => setNewSpouse(prev => ({ ...prev, status: e.target.value as 'MARRIED' | 'DIVORCED' | 'WIDOWED' }))}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="MARRIED">Married</option>

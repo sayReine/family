@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Users, Shield, Activity, UserPlus, CheckCircle } from "lucide-react";
-import { useBackendAuth } from "../contexts/BackendAuthContext";
+import { useBackendAuth } from "../hooks/useBackendAuth";
 import { useNavigate } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+/* ===================== INTERFACES ===================== */
 
 interface UserManagement {
   id: string;
@@ -73,9 +75,9 @@ const AdminPage: React.FC = () => {
   } = useBackendAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<"users" | "people" | "register">(
-    "users"
-  );
+  /* ===================== STATE ===================== */
+
+  const [activeTab, setActiveTab] = useState<"users" | "people" | "register">("users");
   const [users, setUsers] = useState<UserManagement[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
   const [stats, setStats] = useState<Stats>({
@@ -87,6 +89,191 @@ const AdminPage: React.FC = () => {
   const [photoType, setPhotoType] = useState<"upload" | "url">("url");
   const [showApprovalConfirm, setShowApprovalConfirm] = useState(false);
   const [approvedUser, setApprovedUser] = useState<UserManagement | null>(null);
+
+  const [formData, setFormData] = useState<FormData>({
+    firstName: "",
+    lastName: "",
+    middleName: "",
+    maidenName: "",
+    gender: "",
+    dateOfBirth: "",
+    isDeceased: false,
+    dateOfDeath: "",
+    biologicalFatherId: "",
+    biologicalMotherId: "",
+    email: null,
+    phone: null,
+    address: null,
+    city: null,
+    state: null,
+    country: null,
+    occupation: "",
+    bio: "",
+    profilePhoto: "",
+  });
+
+  /* ===================== FETCH FUNCTIONS ===================== */
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/stats`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setStats(data.stats);
+      }
+    } catch (error) {
+      console.error("Failed to fetch stats:", error);
+    }
+  }, [token]);
+
+  const fetchUsers = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/users`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data.users || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [token]);
+
+  const fetchPeople = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/person`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setPeople(Array.isArray(data) ? data : data.people || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch people:", error);
+      setPeople([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [token]);
+
+  /* ===================== HANDLERS ===================== */
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
+    const target = e.target as HTMLInputElement;
+    const { name, value, type } = target;
+    const checked = target.checked;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+      ...(name === "isDeceased" && !checked ? { dateOfDeath: "" } : {}),
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      const response = await fetch(`${API_URL}/api/person`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to register person");
+      }
+
+      alert("Family member registered successfully");
+      
+      // Reset form
+      setFormData({
+        firstName: "",
+        lastName: "",
+        middleName: "",
+        maidenName: "",
+        gender: "",
+        dateOfBirth: "",
+        isDeceased: false,
+        dateOfDeath: "",
+        biologicalFatherId: "",
+        biologicalMotherId: "",
+        email: null,
+        phone: null,
+        address: null,
+        city: null,
+        state: null,
+        country: null,
+        occupation: "",
+        bio: "",
+        profilePhoto: "",
+      });
+      
+      setActiveTab("people");
+      fetchPeople();
+      fetchStats();
+    } catch (error) {
+      console.error(error);
+      alert("Registration failed");
+    }
+  };
+
+  const handleApproveUser = async (userId: string) => {
+    if (!window.confirm("Approve this user?")) return;
+
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/users/${userId}/role`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ role: "MEMBER" }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setApprovedUser(data.user);
+        setShowApprovalConfirm(true);
+        fetchUsers();
+      }
+    } catch (error) {
+      console.error("Failed to approve user:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRejectUser = async (userId: string) => {
+    if (!window.confirm("Reject this user?")) return;
+
+    try {
+      await fetch(`${API_URL}/api/admin/users/${userId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      fetchUsers();
+    } catch (error) {
+      console.error("Failed to reject user:", error);
+    }
+  };
+
+  /* ===================== EFFECTS ===================== */
 
   // Check if user is admin
   useEffect(() => {
@@ -105,137 +292,9 @@ const AdminPage: React.FC = () => {
         fetchPeople();
       }
     }
-  }, [isAuthenticated, user, activeTab]);
+  }, [isAuthenticated, user, activeTab, fetchStats, fetchUsers, fetchPeople]);
 
-  const fetchStats = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/admin/stats`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data.stats);
-      }
-    } catch (error) {
-      console.error("Failed to fetch stats:", error);
-    }
-  };
-
-  const fetchUsers = async () => {
-    setIsLoading(true);
-    try {
-      // This endpoint doesn't exist yet - you'll need to add it to your backend
-      const response = await fetch(`${API_URL}/api/admin/users`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data.users || []);
-      }
-    } catch (error) {
-      console.error("Failed to fetch users:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchPeople = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${API_URL}/api/persons`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setPeople(data || []);
-      }
-    } catch (error) {
-      console.error("Failed to fetch people:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleApproveUser = async (userId: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to approve this user? This will change their role to MEMBER."
-      )
-    ) {
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const response = await fetch(
-        `${API_URL}/api/admin/users/${userId}/role`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ role: "MEMBER" }),
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setApprovedUser(data.user);
-        setShowApprovalConfirm(true);
-        fetchUsers(); // Refresh the users list
-      } else {
-        const error = await response.json();
-        alert(`Failed to approve user: ${error.error}`);
-      }
-    } catch (error) {
-      console.error("Failed to approve user:", error);
-      alert("Failed to approve user. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleRejectUser = async (userId: string) => {
-    const reason = prompt("Please provide a reason for rejection:");
-    if (!reason || !reason.trim()) {
-      alert("Rejection reason is required");
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const response = await fetch(
-        `${API_URL}/api/admin/users/${userId}/status`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ isActive: false }),
-        }
-      );
-
-      if (response.ok) {
-        alert(
-          "User rejected and deactivated. They will not be able to log in."
-        );
-        fetchUsers(); // Refresh the users list
-      } else {
-        const error = await response.json();
-        alert(`Failed to reject user: ${error.error}`);
-      }
-    } catch (error) {
-      console.error("Failed to reject user:", error);
-      alert("Failed to reject user. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  /* ===================== RENDER ===================== */
 
   if (isAuthLoading) {
     return (
@@ -255,9 +314,7 @@ const AdminPage: React.FC = () => {
               <Shield className="w-8 h-8 text-purple-600" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-50">
-                Admin Dashboard
-              </h1>
+              <h1 className="text-3xl font-bold text-gray-50">Admin Dashboard</h1>
               <p className="text-gray-400 mt-1">
                 Manage users, profiles, and family tree data
               </p>
@@ -271,9 +328,7 @@ const AdminPage: React.FC = () => {
                 <Users className="w-5 h-5" />
                 <span className="text-sm font-medium">Total Users</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">
-                {stats.totalUsers}
-              </p>
+              <p className="text-2xl font-bold text-gray-900">{stats.totalUsers}</p>
             </div>
 
             <div className="bg-green-50 rounded-lg p-4">
@@ -281,9 +336,7 @@ const AdminPage: React.FC = () => {
                 <Activity className="w-5 h-5" />
                 <span className="text-sm font-medium">Total People</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">
-                {stats.totalPeople}
-              </p>
+              <p className="text-2xl font-bold text-gray-900">{stats.totalPeople}</p>
             </div>
           </div>
         </div>
@@ -348,9 +401,7 @@ const AdminPage: React.FC = () => {
               ) : users.filter((user) => user.role === "GUEST").length === 0 ? (
                 <div className="text-center py-12">
                   <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">
-                    No guest user registrations found
-                  </p>
+                  <p className="text-gray-500">No guest user registrations found</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -383,28 +434,21 @@ const AdminPage: React.FC = () => {
                               <div className="text-sm font-medium text-gray-900">
                                 {user.email}
                               </div>
-                              <div className="text-sm text-gray-500">
-                                Role: {user.role}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                ID: {user.id}
-                              </div>
+                              <div className="text-sm text-gray-500">Role: {user.role}</div>
+                              <div className="text-sm text-gray-500">ID: {user.id}</div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               {user.person ? (
                                 <div>
                                   <div className="text-sm font-medium text-gray-900">
-                                    {user.person.firstName}{" "}
-                                    {user.person.lastName}
+                                    {user.person.firstName} {user.person.lastName}
                                   </div>
                                   <div className="text-sm text-gray-500">
                                     Person ID: {user.personId}
                                   </div>
                                 </div>
                               ) : (
-                                <div className="text-sm text-gray-500">
-                                  No person linked
-                                </div>
+                                <div className="text-sm text-gray-500">No person linked</div>
                               )}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
@@ -419,16 +463,10 @@ const AdminPage: React.FC = () => {
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              <div>
-                                Created:{" "}
-                                {new Date(user.createdAt).toLocaleDateString()}
-                              </div>
+                              <div>Created: {new Date(user.createdAt).toLocaleDateString()}</div>
                               {user.lastLoginAt && (
                                 <div>
-                                  Last Login:{" "}
-                                  {new Date(
-                                    user.lastLoginAt
-                                  ).toLocaleDateString()}
+                                  Last Login: {new Date(user.lastLoginAt).toLocaleDateString()}
                                 </div>
                               )}
                             </td>
@@ -463,20 +501,16 @@ const AdminPage: React.FC = () => {
           {activeTab === "register" && (
             <div className="space-y-6">
               <div className="text-center">
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                <h2 className="text-2xl font-bold text-gray-50 mb-2">
                   Manual Family Member Registration
                 </h2>
-                <p className="text-gray-600">
-                  Add family members directly to the database
-                </p>
+                <p className="text-gray-400">Add family members directly to the database</p>
               </div>
 
               <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-6">
                 {/* Identity Section */}
                 <div className="bg-gray-50 p-6 rounded-lg">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Identity
-                  </h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Identity</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -532,7 +566,12 @@ const AdminPage: React.FC = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Gender
                       </label>
-                      <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900">
+                      <select
+                        name="gender"
+                        value={formData.gender}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900"
+                      >
                         <option value="">Select Gender</option>
                         <option value="MALE">Male</option>
                         <option value="FEMALE">Female</option>
@@ -565,7 +604,9 @@ const AdminPage: React.FC = () => {
                     </div>
                     {formData.isDeceased && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Date of Death</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Date of Death
+                        </label>
                         <input
                           type="date"
                           name="dateOfDeath"
@@ -607,8 +648,7 @@ const AdminPage: React.FC = () => {
                   </div>
                   <div className="mt-4 p-4 bg-blue-50 rounded-md">
                     <p className="text-sm text-blue-800">
-                      <strong>Suggested Generation:</strong> Generation 1 (No
-                      parents selected)
+                      <strong>Suggested Generation:</strong> Generation 1 (No parents selected)
                     </p>
                   </div>
                 </div>
@@ -620,26 +660,22 @@ const AdminPage: React.FC = () => {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Email
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                       <input
                         type="email"
                         name="email"
-                        value={formData.email ?? ''}
+                        value={formData.email ?? ""}
                         onChange={handleInputChange}
                         disabled={formData.isDeceased}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Phone
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                       <input
                         type="tel"
                         name="phone"
-                        value={formData.phone ?? ''}
+                        value={formData.phone ?? ""}
                         onChange={handleInputChange}
                         disabled={formData.isDeceased}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -652,33 +688,29 @@ const AdminPage: React.FC = () => {
                       <input
                         type="text"
                         name="address"
-                        value={formData.address ?? ''}
+                        value={formData.address ?? ""}
                         onChange={handleInputChange}
                         disabled={formData.isDeceased}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        City
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
                       <input
                         type="text"
                         name="city"
-                        value={formData.city ?? ''}
+                        value={formData.city ?? ""}
                         onChange={handleInputChange}
                         disabled={formData.isDeceased}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        State
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
                       <input
                         type="text"
                         name="state"
-                        value={formData.state ?? ''}
+                        value={formData.state ?? ""}
                         onChange={handleInputChange}
                         disabled={formData.isDeceased}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -691,7 +723,7 @@ const AdminPage: React.FC = () => {
                       <input
                         type="text"
                         name="country"
-                        value={formData.country ?? ''}
+                        value={formData.country ?? ""}
                         onChange={handleInputChange}
                         disabled={formData.isDeceased}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -702,9 +734,7 @@ const AdminPage: React.FC = () => {
 
                 {/* Life & Story Section */}
                 <div className="bg-gray-50 p-6 rounded-lg">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Life & Story
-                  </h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Life & Story</h3>
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -719,9 +749,7 @@ const AdminPage: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Bio
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
                       <textarea
                         rows={4}
                         name="bio"
@@ -743,14 +771,10 @@ const AdminPage: React.FC = () => {
                               name="photoType"
                               value="url"
                               checked={photoType === "url"}
-                              onChange={(e) =>
-                                setPhotoType(e.target.value as "upload" | "url")
-                              }
+                              onChange={(e) => setPhotoType(e.target.value as "upload" | "url")}
                               className="mr-2"
                             />
-                            <span className="text-sm text-gray-700">
-                              Online URL
-                            </span>
+                            <span className="text-sm text-gray-700">Online URL</span>
                           </label>
                           <label className="flex items-center">
                             <input
@@ -758,14 +782,10 @@ const AdminPage: React.FC = () => {
                               name="photoType"
                               value="upload"
                               checked={photoType === "upload"}
-                              onChange={(e) =>
-                                setPhotoType(e.target.value as "upload" | "url")
-                              }
+                              onChange={(e) => setPhotoType(e.target.value as "upload" | "url")}
                               className="mr-2"
                             />
-                            <span className="text-sm text-gray-700">
-                              Upload from PC
-                            </span>
+                            <span className="text-sm text-gray-700">Upload from PC</span>
                           </label>
                         </div>
                         {photoType === "url" ? (
@@ -805,12 +825,10 @@ const AdminPage: React.FC = () => {
               {isLoading ? (
                 <div className="text-center py-8">
                   <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                  <p className="mt-2 text-gray-500">Loading people...</p>
+                  <p className="mt-2 text-gray-400">Loading people...</p>
                 </div>
               ) : people.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">
-                  No people found.
-                </p>
+                <p className="text-gray-400 text-center py-8">No people found.</p>
               ) : (
                 <div className="bg-white shadow overflow-hidden sm:rounded-md">
                   <div className="px-4 py-5 sm:p-6">
@@ -840,33 +858,24 @@ const AdminPage: React.FC = () => {
                             <tr key={person.id} className="hover:bg-gray-50">
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="text-sm font-medium text-gray-900">
-                                  {person.firstName} {person.middleName || ""}{" "}
-                                  {person.lastName}
+                                  {person.firstName} {person.middleName || ""} {person.lastName}
                                 </div>
                                 {person.maidenName && (
                                   <div className="text-sm text-gray-500">
                                     Maiden: {person.maidenName}
                                   </div>
                                 )}
-                                <div className="text-sm text-gray-500">
-                                  ID: {person.id}
-                                </div>
+                                <div className="text-sm text-gray-500">ID: {person.id}</div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 {person.email && (
-                                  <div className="text-sm text-gray-900">
-                                    {person.email}
-                                  </div>
+                                  <div className="text-sm text-gray-900">{person.email}</div>
                                 )}
                                 {person.phone && (
-                                  <div className="text-sm text-gray-500">
-                                    {person.phone}
-                                  </div>
+                                  <div className="text-sm text-gray-500">{person.phone}</div>
                                 )}
                                 {!person.email && !person.phone && (
-                                  <div className="text-sm text-gray-500">
-                                    No contact info
-                                  </div>
+                                  <div className="text-sm text-gray-500">No contact info</div>
                                 )}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
@@ -880,13 +889,11 @@ const AdminPage: React.FC = () => {
                                   {person.isDeceased ? "Deceased" : "Living"}
                                 </span>
                                 <div className="text-xs text-gray-500 mt-1">
-                                  Profile: {person.profileStatus}
+                                  {person.profileStatus}
                                 </div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {new Date(
-                                  person.createdAt
-                                ).toLocaleDateString()}
+                                {new Date(person.createdAt).toLocaleDateString()}
                               </td>
                             </tr>
                           ))}
@@ -909,9 +916,7 @@ const AdminPage: React.FC = () => {
               <div className="p-2 bg-green-100 rounded-lg">
                 <CheckCircle className="w-6 h-6 text-green-600" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900">
-                User Profile Confirmed
-              </h3>
+              <h3 className="text-xl font-bold text-gray-900">User Profile Confirmed</h3>
             </div>
 
             <div className="space-y-4">
@@ -920,15 +925,13 @@ const AdminPage: React.FC = () => {
                   Profile Successfully Approved
                 </p>
                 <p className="text-sm text-green-800">
-                  The user's role has been changed from GUEST to MEMBER. They
-                  now have full access to the family tree.
+                  The user's role has been changed from GUEST to MEMBER. They now have full
+                  access to the family tree.
                 </p>
               </div>
 
               <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-gray-900 mb-3">
-                  User Information
-                </h4>
+                <h4 className="text-sm font-medium text-gray-900 mb-3">User Information</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Email:</span>
@@ -936,17 +939,13 @@ const AdminPage: React.FC = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Role:</span>
-                    <span className="font-medium text-green-600">
-                      {approvedUser.role}
-                    </span>
+                    <span className="font-medium text-green-600">{approvedUser.role}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Status:</span>
                     <span
                       className={`font-medium ${
-                        approvedUser.isActive
-                          ? "text-green-600"
-                          : "text-red-600"
+                        approvedUser.isActive ? "text-green-600" : "text-red-600"
                       }`}
                     >
                       {approvedUser.isActive ? "Active" : "Inactive"}
@@ -957,8 +956,7 @@ const AdminPage: React.FC = () => {
                       <div className="flex justify-between">
                         <span className="text-gray-600">Name:</span>
                         <span className="font-medium">
-                          {approvedUser.person.firstName}{" "}
-                          {approvedUser.person.lastName}
+                          {approvedUser.person.firstName} {approvedUser.person.lastName}
                         </span>
                       </div>
                       <div className="flex justify-between">
@@ -979,9 +977,7 @@ const AdminPage: React.FC = () => {
                     <div className="flex justify-between">
                       <span className="text-gray-600">Last Login:</span>
                       <span className="font-medium">
-                        {new Date(
-                          approvedUser.lastLoginAt
-                        ).toLocaleDateString()}
+                        {new Date(approvedUser.lastLoginAt).toLocaleDateString()}
                       </span>
                     </div>
                   )}

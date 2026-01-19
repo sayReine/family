@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BookOpen, Briefcase, Camera, Plus, X, Upload } from 'lucide-react';
-import { useProfile } from '../../contexts/ProfileContext';
+import { useProfile } from '../../hooks/useProfile';
 
 const LifeStorySection: React.FC = () => {
   const { profileData, updateLifeStory, addStory, removeStory } = useProfile();

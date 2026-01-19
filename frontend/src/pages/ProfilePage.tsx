@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import  { useState, useEffect, useRef } from "react";
 import {
   ChevronRight,
   ChevronLeft,
@@ -10,12 +10,12 @@ import {
   AlertCircle,
   UserPlus,
 } from "lucide-react";
-import {
-  ProfileProvider,
-  useProfile,
-  type ProfileStatus,
-} from "../contexts/ProfileContext";
-import { useBackendAuth } from "../contexts/BackendAuthContext";
+import { ProfileProvider,
+  //  type ProfileStatus
+   } from "../contexts/ProfileContext";
+import type { ProfileStatus } from "../contexts/ProfileContextTypes";
+import { useProfile } from "../hooks/useProfile";
+import { useBackendAuth } from "../hooks/useBackendAuth";
 import IdentitySection from "../components/profile/IdentitySection";
 import ContactSection from "../components/profile/ContactSection";
 import FamilyRelationshipsSection from "../components/profile/FamilyRelationshipSection";
@@ -51,9 +51,7 @@ const ProfilePageContent: React.FC = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showApprovalConfirm, setShowApprovalConfirm] = useState(false);
-  const [previousStatus, setPreviousStatus] = useState<ProfileStatus | null>(
-    null
-  );
+  const previousStatusRef = useRef<ProfileStatus | null>(null);
 
   // Detect if user is new (not authenticated)
   useEffect(() => {
@@ -69,13 +67,13 @@ const ProfilePageContent: React.FC = () => {
   useEffect(() => {
     if (
       profileData.status === "APPROVED" &&
-      previousStatus === "PENDING" &&
+      previousStatusRef.current === "PENDING" &&
       !isNewUser
     ) {
-      setShowApprovalConfirm(true);
+      setTimeout(() => setShowApprovalConfirm(true), 0);
     }
-    setPreviousStatus(profileData.status);
-  }, [profileData.status, previousStatus, isNewUser]);
+    previousStatusRef.current = profileData.status;
+  }, [profileData.status, isNewUser]);
 
   // Periodically check for profile status updates (every 30 seconds)
   useEffect(() => {

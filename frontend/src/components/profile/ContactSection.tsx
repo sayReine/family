@@ -1,6 +1,6 @@
 import React from 'react';
 import { MapPin, Mail, Phone, Info, Lock, Eye } from 'lucide-react';
-import { useProfile } from '../../contexts/ProfileContext';
+import { useProfile } from '../../hooks/useProfile';
 
 const ContactSection: React.FC = () => {
   const { profileData, updateContact } = useProfile();

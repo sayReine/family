@@ -626,6 +626,33 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
       })
     }
 
+    // ===== Duplicate Check =====
+    const duplicateConditions = []
+
+    if (email) {
+      duplicateConditions.push({ email })
+    }
+
+    if (dateOfBirth) {
+      duplicateConditions.push({
+        firstName,
+        lastName,
+        dateOfBirth: new Date(dateOfBirth)
+      })
+    }
+
+    const duplicate = duplicateConditions.length > 0 ? await prisma.person.findFirst({
+      where: {
+        OR: duplicateConditions
+      }
+    }) : null
+
+    if (duplicate) {
+      return res.status(400).json({
+        error: 'This person already exists in the database'
+      })
+    }
+
     // Create person
     const person = await prisma.person.create({
       data: {
@@ -670,6 +697,7 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
     res.status(500).json({ error: 'Failed to create person' })
   }
 })
+
 
 // Update person (with access control)
 router.put('/:personId', authenticate, async (req: AuthRequest, res) => {
