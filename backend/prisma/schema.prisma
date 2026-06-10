@@ -199,6 +199,52 @@ model Event {
   @@index([eventDate])
 }
 
+model Family {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  name        String
+  description String?
+  createdBy   String
+
+  members     FamilyMember[]
+  joinRequests JoinRequest[]
+
+  @@index([name])
+}
+
+model FamilyMember {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  familyId  String
+  family    Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  userId    String
+  role      FamilyRole @default(MEMBER)
+
+  @@unique([familyId, userId])
+  @@index([familyId])
+  @@index([userId])
+}
+
+model JoinRequest {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  familyId  String
+  family    Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  userId    String
+  status    JoinRequestStatus @default(PENDING)
+
+  @@unique([familyId, userId])
+  @@index([familyId])
+  @@index([userId])
+}
+
 model AuditLog {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
@@ -219,6 +265,17 @@ model AuditLog {
   @@index([personId])
   @@index([createdAt])
   @@index([action])
+}
+
+enum FamilyRole {
+  ADMIN
+  MEMBER
+}
+
+enum JoinRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
 }
 
 enum ProfileStatus {

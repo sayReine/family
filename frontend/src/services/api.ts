@@ -125,4 +125,47 @@ export const personsAPI = {
   },
 };
 
+// Families API
+export const familiesAPI = {
+  list: async () => {
+    const response = await api.get('/families');
+    return response.data;
+  },
+
+  get: async (id: string) => {
+    const response = await api.get(`/families/${id}`);
+    return response.data;
+  },
+
+  create: async (data: { name: string; description?: string }) => {
+    const response = await api.post('/families', data);
+    return response.data;
+  },
+
+  requestJoin: async (familyId: string) => {
+    const response = await api.post(`/families/${familyId}/join`, {});
+    return response.data;
+  },
+
+  getRequests: async (familyId: string) => {
+    const response = await api.get(`/families/${familyId}/requests`);
+    return response.data;
+  },
+
+  processRequest: async (familyId: string, requestId: string, action: 'accept' | 'reject') => {
+    const response = await api.put(`/families/${familyId}/requests/${requestId}`, { action });
+    return response.data;
+  },
+
+  getTree: async (familyId: string) => {
+    const response = await api.get(`/families/${familyId}/tree`);
+    return response.data;
+  },
+
+  removeMember: async (familyId: string, memberId: string) => {
+    const response = await api.delete(`/families/${familyId}/members/${memberId}`);
+    return response.data;
+  },
+};
+
 export default api;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Users, Shield, Activity, UserPlus, CheckCircle } from "lucide-react";
-import { useBackendAuth } from "../hooks/useBackendAuth";
+import { useBackendAuth } from "../hooks/UseBackendAuth";
 import { useNavigate } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";

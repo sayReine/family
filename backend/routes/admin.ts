@@ -458,7 +458,7 @@ router.get('/admins', authenticate, requireAdmin, async (req: AuthRequest, res) 
     const take = parseInt(limit as string)
 
     const where = {
-      role: 'ADMIN',
+      role: 'ADMIN' as const,
       ...(search
         ? {
             OR: [

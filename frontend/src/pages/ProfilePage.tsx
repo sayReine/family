@@ -1,613 +1,442 @@
-import  { useState, useEffect, useRef } from "react";
-import {
-  ChevronRight,
-  ChevronLeft,
-  Save,
-  Send,
-  CheckCircle,
-  XCircle,
-  Clock,
-  AlertCircle,
-  UserPlus,
-} from "lucide-react";
-import { ProfileProvider,
-  //  type ProfileStatus
-   } from "../contexts/ProfileContext";
-import type { ProfileStatus } from "../contexts/ProfileContextTypes";
-import { useProfile } from "../hooks/useProfile";
-import { useBackendAuth } from "../hooks/useBackendAuth";
-import IdentitySection from "../components/profile/IdentitySection";
-import ContactSection from "../components/profile/ContactSection";
-import FamilyRelationshipsSection from "../components/profile/FamilyRelationshipSection";
-import ChildrenSection from "../components/profile/ChildrenSection";
-import LifeStorySection from "../components/profile/LifeStorySection";
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useBackendAuth } from '../hooks/UseBackendAuth';
+import { Camera, Save, Send, CheckCircle, XCircle, Clock, AlertCircle, Edit3, LogOut } from 'lucide-react';
+import { useLang } from '../contexts/LanguageContext';
 
-const sections = [
-  { id: 1, title: "Identity", required: true },
-  { id: 2, title: "Contact & Location", required: false },
-  { id: 3, title: "Family Relationships", required: true },
-  { id: 4, title: "Children", required: false },
-  { id: 5, title: "Life & Story", required: false },
-];
+const C = {
+  navy: '#0d2557', navyMid: '#1a3a7a', navyLight: '#2a52a0',
+  gold: '#c9a84c', goldLight: '#e8c97a',
+  cream: '#f8f5ef', creamDark: '#ede8df',
+  textDark: '#0d1f3c', textMid: '#3a4e6e', textMuted: '#7a8faa', white: '#ffffff',
+  red: '#dc2626', redLight: '#fef2f2',
+  green: '#166534', greenLight: '#dcfce7',
+};
 
-const ProfilePageContent: React.FC = () => {
-  const {
-    currentSection,
-    setCurrentSection,
-    profileData,
-    submitProfile,
-    saveDraft,
-    registerAndSubmit,
-    loadProfile,
-    isLoading,
-    isNewUser,
-    setIsNewUser,
-    updateContact,
-  } = useProfile();
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-  const { isAuthenticated } = useBackendAuth();
+const inputStyle: React.CSSProperties = {
+  width: '100%', padding: '10px 13px', border: `1.5px solid ${C.creamDark}`,
+  borderRadius: 8, fontSize: '0.9rem', color: C.textDark,
+  backgroundColor: C.cream, outline: 'none', fontFamily: 'inherit',
+  boxSizing: 'border-box',
+};
 
-  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showApprovalConfirm, setShowApprovalConfirm] = useState(false);
-  const previousStatusRef = useRef<ProfileStatus | null>(null);
+const labelStyle: React.CSSProperties = {
+  display: 'block', fontSize: '0.78rem', fontWeight: 700,
+  color: C.textMid, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em',
+};
 
-  // Detect if user is new (not authenticated)
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setIsNewUser(true);
-    } else {
-      // Load existing profile data for authenticated users
-      loadProfile();
-    }
-  }, [isAuthenticated, setIsNewUser, loadProfile]);
+const sectionCard: React.CSSProperties = {
+  background: C.white, borderRadius: 14, border: `1px solid ${C.creamDark}`,
+  padding: '1.5rem', marginBottom: '1.25rem',
+  boxShadow: '0 2px 10px rgba(13,37,87,0.06)',
+};
 
-  // Detect status changes to show approval confirmation
-  useEffect(() => {
-    if (
-      profileData.status === "APPROVED" &&
-      previousStatusRef.current === "PENDING" &&
-      !isNewUser
-    ) {
-      setTimeout(() => setShowApprovalConfirm(true), 0);
-    }
-    previousStatusRef.current = profileData.status;
-  }, [profileData.status, isNewUser]);
-
-  // Periodically check for profile status updates (every 30 seconds)
-  useEffect(() => {
-    if (isAuthenticated && !isNewUser) {
-      const interval = setInterval(() => {
-        loadProfile();
-      }, 30000); // Check every 30 seconds
-
-      return () => clearInterval(interval);
-    }
-  }, [isAuthenticated, isNewUser, loadProfile]);
-
-  const handleNext = () => {
-    if (currentSection < sections.length) {
-      setCurrentSection(currentSection + 1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
-
-  const handleBack = () => {
-    if (currentSection > 1) {
-      setCurrentSection(currentSection - 1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
-
-  const handleSaveDraft = async () => {
-    try {
-      console.log("handleSaveDraft called");
-      await saveDraft();
-      alert("Draft saved successfully!");
-    } catch (error) {
-      console.error("handleSaveDraft error:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      alert(`Failed to save draft: ${errorMessage}`);
-    }
-  };
-
-  const handleSubmit = async () => {
-    try {
-      if (isNewUser) {
-        // Validate registration fields
-        if (!profileData.email) {
-          alert("Email is required for registration");
-          return;
-        }
-
-        if (!password) {
-          alert("Password is required for registration");
-          return;
-        }
-
-        if (password !== confirmPassword) {
-          alert("Passwords do not match");
-          return;
-        }
-
-        if (password.length < 6) {
-          alert("Password must be at least 6 characters long");
-          return;
-        }
-
-        // Update profile data with password
-        updateContact({ password, confirmPassword });
-
-        // Register and submit
-        await registerAndSubmit();
-        alert(
-          "Registration successful! Your profile has been submitted for review."
-        );
-      } else {
-        // Just submit profile for existing users
-        await submitProfile();
-        alert("Profile submitted for review!");
-      }
-
-      setShowSubmitConfirm(false);
-    } catch (error) {
-      console.error("Submit error:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      alert(`Failed to submit: ${errorMessage}`);
-    }
-  };
-
-  const getStatusBadge = () => {
-    const statusConfig = {
-      DRAFT: { icon: Clock, text: "Draft", color: "bg-gray-100 text-gray-700" },
-      PENDING: {
-        icon: Clock,
-        text: "Pending Review",
-        color: "bg-yellow-100 text-yellow-700",
-      },
-      APPROVED: {
-        icon: CheckCircle,
-        text: "Approved",
-        color: "bg-green-100 text-green-700",
-      },
-      REJECTED: {
-        icon: XCircle,
-        text: "Rejected",
-        color: "bg-red-100 text-red-700",
-      },
-    };
-
-    const config = statusConfig[profileData.status];
-    const Icon = config.icon;
-
-    return (
-      <div
-        className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${config.color}`}
+const FInput: React.FC<{
+  label: string; name: string; value: string; type?: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+  placeholder?: string; required?: boolean; textarea?: boolean; options?: string[];
+}> = ({ label, name, value, type = 'text', onChange, placeholder, required, textarea, options }) => (
+  <div style={{ marginBottom: '1rem' }}>
+    <label style={labelStyle}>{label}{required && <span style={{ color: C.red, marginLeft: 3 }}>*</span>}</label>
+    {textarea ? (
+      <textarea name={name} value={value} onChange={onChange} placeholder={placeholder} rows={3}
+        style={{ ...inputStyle, resize: 'vertical' }}
+        onFocus={e => { e.target.style.borderColor = C.navyLight; e.target.style.background = C.white; }}
+        onBlur={e  => { e.target.style.borderColor = C.creamDark; e.target.style.background = C.cream; }}
+      />
+    ) : options ? (
+      <select name={name} value={value} onChange={onChange}
+        style={{ ...inputStyle, appearance: 'auto' }}
+        onFocus={e => { e.target.style.borderColor = C.navyLight; e.target.style.background = C.white; }}
+        onBlur={e  => { e.target.style.borderColor = C.creamDark; e.target.style.background = C.cream; }}
       >
-        <Icon className="w-4 h-4" />
-        {config.text}
-      </div>
-    );
+        <option value="">Select…</option>
+        {options.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+    ) : (
+      <input type={type} name={name} value={value} onChange={onChange} placeholder={placeholder}
+        style={inputStyle}
+        onFocus={e => { e.target.style.borderColor = C.navyLight; e.target.style.background = C.white; }}
+        onBlur={e  => { e.target.style.borderColor = C.creamDark; e.target.style.background = C.cream; }}
+      />
+    )}
+  </div>
+);
+
+interface ProfileForm {
+  firstName: string; middleName: string; lastName: string; maidenName: string;
+  gender: string; dateOfBirth: string; bio: string; occupation: string;
+  email: string; phone: string; address: string; city: string; state: string; country: string;
+  profilePhoto: string; profileStatus: string;
+}
+
+const EMPTY: ProfileForm = {
+  firstName: '', middleName: '', lastName: '', maidenName: '',
+  gender: '', dateOfBirth: '', bio: '', occupation: '',
+  email: '', phone: '', address: '', city: '', state: '', country: '',
+  profilePhoto: '', profileStatus: 'DRAFT',
+};
+
+const ProfilePage: React.FC = () => {
+  const { user, token, logout } = useBackendAuth();
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const [form,      setForm]      = useState<ProfileForm>(EMPTY);
+  const [loading,   setLoading]   = useState(true);
+  const [saving,    setSaving]    = useState(false);
+  const [toast,     setToast]     = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+  const [activeTab, setActiveTab] = useState<'info' | 'contact' | 'account'>('info');
+  const [photoPreview, setPhotoPreview] = useState<string>('');
+
+  const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3500);
   };
 
-  const renderSection = () => {
-    switch (currentSection) {
-      case 1:
-        return <IdentitySection />;
-      case 2:
-        return <ContactSection />;
-      case 3:
-        return <FamilyRelationshipsSection />;
-      case 4:
-        return <ChildrenSection />;
-      case 5:
-        return <LifeStorySection />;
-      default:
-        return <IdentitySection />;
-    }
+  const loadProfile = useCallback(async () => {
+    if (!token) { setLoading(false); return; }
+    try {
+      const res = await fetch(`${API_URL}/api/person/profile`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setForm({
+          firstName:     data.firstName     ?? '',
+          middleName:    data.middleName    ?? '',
+          lastName:      data.lastName      ?? '',
+          maidenName:    data.maidenName    ?? '',
+          gender:        data.gender        ?? '',
+          dateOfBirth:   data.dateOfBirth   ? data.dateOfBirth.split('T')[0] : '',
+          bio:           data.bio           ?? '',
+          occupation:    data.occupation    ?? '',
+          email:         data.email         ?? '',
+          phone:         data.phone         ?? '',
+          address:       data.address       ?? '',
+          city:          data.city          ?? '',
+          state:         data.state         ?? '',
+          country:       data.country       ?? '',
+          profilePhoto:  data.profilePhoto  ?? '',
+          profileStatus: data.profileStatus ?? 'DRAFT',
+        });
+        setPhotoPreview(data.profilePhoto ?? '');
+      }
+    } catch { /* no profile yet */ }
+    finally { setLoading(false); }
+  }, [token]);
+
+  useEffect(() => { loadProfile(); }, [loadProfile]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setForm(p => ({ ...p, [name]: value }));
   };
+
+  /* photo upload — convert to base64 data URL for demo; in prod use an upload endpoint */
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) { showToast('Photo must be under 3MB', 'error'); return; }
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const url = ev.target?.result as string;
+      setPhotoPreview(url);
+      setForm(p => ({ ...p, profilePhoto: url }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  /* also support photo URL input */
+  const handlePhotoUrl = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPhotoPreview(e.target.value);
+    setForm(p => ({ ...p, profilePhoto: e.target.value }));
+  };
+
+  const save = async (submit = false) => {
+    if (!form.firstName || !form.lastName) { showToast('First and last name are required', 'error'); return; }
+    setSaving(true);
+    try {
+      const payload = {
+        ...form,
+        profileStatus: submit ? 'PENDING' : 'DRAFT',
+        dateOfBirth: form.dateOfBirth || undefined,
+        submittedAt: submit ? new Date().toISOString() : undefined,
+      };
+      const res = await fetch(`${API_URL}/api/person/profile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        showToast(submit ? 'Profile submitted for review! ✅' : 'Profile saved successfully ✅');
+        await loadProfile();
+      } else {
+        const body = await res.json().catch(() => ({}));
+        showToast(body.error || 'Failed to save profile', 'error');
+      }
+    } catch { showToast('Connection error', 'error'); }
+    finally { setSaving(false); }
+  };
+
+  const statusConfig: Record<string, { icon: React.ReactNode; label: string; bg: string; color: string }> = {
+    DRAFT:    { icon: <Edit3 size={13} />,    label: 'Draft',          bg: C.creamDark,  color: C.textMuted },
+    PENDING:  { icon: <Clock size={13} />,    label: 'Pending Review', bg: '#fef3c7',    color: '#92400e'   },
+    APPROVED: { icon: <CheckCircle size={13}/>,label: 'Approved',      bg: C.greenLight, color: C.green     },
+    REJECTED: { icon: <XCircle size={13} />,  label: 'Rejected',       bg: '#fee2e2',    color: C.red       },
+  };
+
+  const status = statusConfig[form.profileStatus] ?? statusConfig.DRAFT;
+  const hasPhoto = !!photoPreview;
+  const fullName = [form.firstName, form.lastName].filter(Boolean).join(' ');
+  const initials = [form.firstName[0], form.lastName[0]].filter(Boolean).join('').toUpperCase();
+
+  const tabs: { key: 'info' | 'contact' | 'account'; label: string; icon: string }[] = [
+    { key: 'info',    label: 'Personal Info',   icon: '👤' },
+    { key: 'contact', label: 'Contact',         icon: '📍' },
+    { key: 'account', label: 'Account',         icon: '⚙️'  },
+  ];
+
+  if (loading) return (
+    <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: C.cream }}>
+      <div style={{ width: 40, height: 40, border: `3px solid ${C.creamDark}`, borderTop: `3px solid ${C.navy}`, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-gray-700 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-50">
-                {isNewUser
-                  ? "Register & Create Profile"
-                  : "Profile Information"}
-              </h1>
-              <p className="text-gray-50 mt-1">
-                {isNewUser
-                  ? "Create your account and join the family tree"
-                  : "Complete your profile to join the family tree"}
+    <div style={{ background: C.cream, minHeight: '100vh', fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+
+      {/* toast */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: '1.5rem', right: '1.5rem', zIndex: 999,
+          background: toast.type === 'success' ? C.navy : C.red,
+          color: C.white, padding: '12px 20px', borderRadius: 10,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.2)', fontSize: '0.875rem', fontWeight: 600,
+          display: 'flex', alignItems: 'center', gap: 8,
+          animation: 'slideUp 0.3s ease',
+        }}>
+          {toast.type === 'success' ? '✅' : '❌'} {toast.msg}
+        </div>
+      )}
+      <style>{`@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}`}</style>
+
+      {/* hero banner */}
+      <div style={{ background: `linear-gradient(135deg,${C.navy},${C.navyMid})`, padding: '2rem 2rem 3rem', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', inset: 0, backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/svg%3E\")", pointerEvents: 'none' }} />
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: 700, margin: '0 auto', display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+
+          {/* avatar */}
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <div style={{ width: 90, height: 90, borderRadius: '50%', border: `3px solid ${C.gold}`, overflow: 'hidden', background: C.navyLight, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {photoPreview
+                ? <img src={photoPreview} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <span style={{ color: 'rgba(255,255,255,0.85)', fontWeight: 900, fontSize: '2rem' }}>{initials || '?'}</span>
+              }
+            </div>
+            <button onClick={() => fileRef.current?.click()} style={{
+              position: 'absolute', bottom: 0, right: 0,
+              width: 28, height: 28, borderRadius: '50%',
+              background: C.gold, border: `2px solid ${C.navy}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer',
+            }}>
+              <Camera size={13} color={C.navy} />
+            </button>
+            <input ref={fileRef} type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: 'none' }} />
+          </div>
+
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <h1 style={{ fontSize: 'clamp(1.3rem,3vw,1.8rem)', fontWeight: 900, color: C.white, margin: '0 0 4px', lineHeight: 1.2 }}>
+              {fullName || 'Your Profile'}
+            </h1>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', margin: '0 0 10px' }}>
+              {user?.email}
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: status.bg, color: status.color, padding: '3px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700 }}>
+                {status.icon} {status.label}
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.12)', color: C.white, padding: '3px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 600 }}>
+                🛡️ {user?.role}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 700, margin: '-1.5rem auto 0', padding: '0 1.5rem 3rem', position: 'relative', zIndex: 1 }}>
+
+        {/* no-photo advisory */}
+        {!hasPhoto && (
+          <div style={{ background: `linear-gradient(135deg,${C.navy},${C.navyMid})`, borderRadius: 14, padding: '1rem 1.25rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '1.5rem' }}>📸</span>
+            <div style={{ flex: 1 }}>
+              <p style={{ color: C.goldLight, fontWeight: 700, fontSize: '0.875rem', margin: 0 }}>Add a profile photo!</p>
+              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.78rem', margin: '2px 0 0' }}>
+                Your family members won't be able to recognise you in the tree without a photo.
               </p>
             </div>
-            {!isNewUser && getStatusBadge()}
+            <button onClick={() => fileRef.current?.click()} style={{
+              background: C.gold, color: C.navy, border: 'none', borderRadius: 8,
+              padding: '8px 16px', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+            }}>Upload Photo</button>
           </div>
+        )}
 
-          {/* New User Notice */}
-          {isNewUser && (
-            <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
-              <UserPlus className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-blue-800">
-                <p className="font-medium">New User Registration</p>
-                <p className="mt-1">
-                  You'll need to provide an email and password to create your
-                  account. Make sure to use the same email in the Contact
-                  section.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Rejection Notice */}
-          {profileData.status === "REJECTED" && profileData.rejectionReason && (
-            <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-red-800">
-                <p className="font-medium">Profile was rejected</p>
-                <p className="mt-1">
-                  <strong>Reason:</strong> {profileData.rejectionReason}
-                </p>
-                <p className="mt-2">
-                  Please make the necessary changes and resubmit.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Progress Bar */}
-          <div className="mt-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-50">
-                Section {currentSection} of {sections.length}
-              </span>
-              <span className="text-sm text-gray-50">
-                {Math.round((currentSection / sections.length) * 100)}% Complete
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
-                style={{
-                  width: `${(currentSection / sections.length) * 100}%`,
-                }}
-              />
+        {/* rejection notice */}
+        {form.profileStatus === 'REJECTED' && (
+          <div style={{ background: C.redLight, border: `1px solid #fca5a5`, borderRadius: 12, padding: '1rem 1.25rem', marginBottom: '1.25rem', display: 'flex', gap: 10 }}>
+            <AlertCircle size={18} color={C.red} style={{ flexShrink: 0, marginTop: 1 }} />
+            <div>
+              <p style={{ color: C.red, fontWeight: 700, fontSize: '0.875rem', margin: '0 0 3px' }}>Profile Rejected</p>
+              <p style={{ color: '#991b1b', fontSize: '0.82rem', margin: 0 }}>Please update your information and resubmit for review.</p>
             </div>
           </div>
+        )}
 
-          {/* Section Navigation */}
-          <div className="mt-6 flex flex-wrap gap-2">
-            {sections.map((section) => (
-              <button
-                key={section.id}
-                onClick={() => setCurrentSection(section.id)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  currentSection === section.id
-                    ? "bg-indigo-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                {section.title}
-                {section.required && (
-                  <span className="text-red-500 ml-1">*</span>
-                )}
+        {/* tabs */}
+        <div style={{ ...sectionCard, padding: 0, overflow: 'hidden', marginBottom: '1.25rem' }}>
+          <div style={{ display: 'flex', borderBottom: `1px solid ${C.creamDark}` }}>
+            {tabs.map(tab => (
+              <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
+                flex: 1, padding: '13px 8px', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                fontWeight: 700, fontSize: '0.82rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                background: activeTab === tab.key ? C.navy : C.white,
+                color: activeTab === tab.key ? C.white : C.textMuted,
+                borderBottom: activeTab === tab.key ? `3px solid ${C.gold}` : '3px solid transparent',
+                transition: 'all 0.15s',
+              }}>
+                {tab.icon} <span className="hidden sm:inline">{tab.label}</span>
               </button>
             ))}
           </div>
-        </div>
 
-        {/* Current Section Content */}
-        <div className="bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
-          {renderSection()}
-        </div>
+          <div style={{ padding: '1.5rem' }}>
 
-        {/* Navigation & Actions */}
-        <div className="bg-gray-800 rounded-lg shadow-sm p-6 flex items-center justify-between flex-wrap gap-4">
-          {/* Back Button */}
-          <button
-            onClick={handleBack}
-            disabled={currentSection === 1}
-            className="flex items-center gap-2 px-6 py-3 text-white rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5" />
-            Back
-          </button>
+            {/* ── TAB: PERSONAL INFO ── */}
+            {activeTab === 'info' && (
+              <div>
+                {/* photo URL input */}
+                <div style={{ marginBottom: '1.25rem', padding: '1rem', background: C.cream, borderRadius: 10 }}>
+                  <label style={{ ...labelStyle, marginBottom: 8 }}>Profile Photo</label>
+                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ width: 52, height: 52, borderRadius: '50%', border: `2px solid ${C.creamDark}`, overflow: 'hidden', background: C.navyMid, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {photoPreview
+                        ? <img src={photoPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        : <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 700, fontSize: '0.9rem' }}>{initials || '?'}</span>
+                      }
+                    </div>
+                    <div style={{ flex: 1, minWidth: 160 }}>
+                      <input type="url" placeholder="Paste a photo URL, or…"
+                        value={form.profilePhoto.startsWith('data:') ? '' : form.profilePhoto}
+                        onChange={handlePhotoUrl}
+                        style={{ ...inputStyle, marginBottom: 6 }}
+                      />
+                      <button onClick={() => fileRef.current?.click()} style={{
+                        background: C.navy, color: C.white, border: 'none', borderRadius: 7,
+                        padding: '7px 14px', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'inherit',
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                      }}>
+                        <Camera size={13} /> Upload from device
+                      </button>
+                    </div>
+                  </div>
+                </div>
 
-          {/* Center Actions */}
-          <div className="flex gap-3">
-            {!isNewUser && (
-              <button
-                onClick={handleSaveDraft}
-                disabled={isLoading}
-                className="flex items-center gap-2 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
-              >
-                <Save className="w-5 h-5" />
-                Save Draft
-              </button>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 1rem' }}>
+                  <FInput label="First Name" name="firstName" value={form.firstName} onChange={handleChange} required />
+                  <FInput label="Last Name"  name="lastName"  value={form.lastName}  onChange={handleChange} required />
+                  <FInput label="Middle Name"  name="middleName"  value={form.middleName}  onChange={handleChange} />
+                  <FInput label="Maiden Name"  name="maidenName"  value={form.maidenName}  onChange={handleChange} />
+                  <FInput label="Gender" name="gender" value={form.gender} onChange={handleChange} options={['MALE','FEMALE','OTHER']} />
+                  <FInput label="Date of Birth" name="dateOfBirth" value={form.dateOfBirth} onChange={handleChange} type="date" />
+                </div>
+                <FInput label="Occupation" name="occupation" value={form.occupation} onChange={handleChange} placeholder="e.g. Teacher, Engineer…" />
+                <FInput label="Bio" name="bio" value={form.bio} onChange={handleChange} textarea placeholder="Tell your family about yourself…" />
+              </div>
             )}
 
-            {currentSection === sections.length && (
-              <button
-                onClick={() => setShowSubmitConfirm(true)}
-                disabled={isLoading}
-                className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
-              >
-                {isNewUser ? (
-                  <UserPlus className="w-5 h-5" />
-                ) : (
-                  <Send className="w-5 h-5" />
-                )}
-                {isNewUser ? "Register & Submit" : "Submit for Review"}
-              </button>
+            {/* ── TAB: CONTACT ── */}
+            {activeTab === 'contact' && (
+              <div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 1rem' }}>
+                  <FInput label="Email"        name="email"   value={form.email}   onChange={handleChange} type="email" />
+                  <FInput label="Phone"        name="phone"   value={form.phone}   onChange={handleChange} type="tel"   />
+                </div>
+                <FInput label="Address" name="address" value={form.address} onChange={handleChange} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0 1rem' }}>
+                  <FInput label="City"    name="city"    value={form.city}    onChange={handleChange} />
+                  <FInput label="State"   name="state"   value={form.state}   onChange={handleChange} />
+                  <FInput label="Country" name="country" value={form.country} onChange={handleChange} />
+                </div>
+              </div>
+            )}
+
+            {/* ── TAB: ACCOUNT ── */}
+            {activeTab === 'account' && (
+              <div>
+                <div style={{ background: C.cream, borderRadius: 10, padding: '1rem', marginBottom: '1rem' }}>
+                  <p style={labelStyle}>Account Email</p>
+                  <p style={{ color: C.textDark, fontWeight: 600, fontSize: '0.9rem', margin: 0 }}>{user?.email}</p>
+                </div>
+                <div style={{ background: C.cream, borderRadius: 10, padding: '1rem', marginBottom: '1rem' }}>
+                  <p style={labelStyle}>Role</p>
+                  <p style={{ color: C.textDark, fontWeight: 600, fontSize: '0.9rem', margin: 0 }}>{user?.role}</p>
+                </div>
+                <div style={{ background: C.cream, borderRadius: 10, padding: '1rem', marginBottom: '1.5rem' }}>
+                  <p style={labelStyle}>Profile Status</p>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: status.bg, color: status.color, padding: '4px 12px', borderRadius: 999, fontSize: '0.78rem', fontWeight: 700 }}>
+                    {status.icon} {status.label}
+                  </span>
+                  {form.profileStatus === 'DRAFT' && (
+                    <p style={{ fontSize: '0.78rem', color: C.textMuted, marginTop: 6 }}>
+                      Complete your profile and submit it for admin review to appear in the family tree.
+                    </p>
+                  )}
+                </div>
+                <button onClick={logout} style={{
+                  display: 'flex', alignItems: 'center', gap: 8, padding: '11px 20px',
+                  background: '#fee2e2', color: C.red, border: 'none', borderRadius: 10,
+                  fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer', fontFamily: 'inherit',
+                }}>
+                  <LogOut size={16} /> Sign Out
+                </button>
+              </div>
             )}
           </div>
+        </div>
 
-          {/* Next Button */}
-          {currentSection < sections.length ? (
-            <button
-              onClick={handleNext}
-              className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-            >
-              Next
-              <ChevronRight className="w-5 h-5" />
+        {/* action bar */}
+        <div style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.creamDark}`, padding: '1.25rem 1.5rem', display: 'flex', gap: '0.75rem', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', boxShadow: '0 2px 10px rgba(13,37,87,0.06)' }}>
+          <button onClick={() => save(false)} disabled={saving} style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: C.creamDark, color: C.textMid, border: 'none', borderRadius: 9,
+            padding: '10px 20px', fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer', fontFamily: 'inherit',
+            opacity: saving ? 0.6 : 1,
+          }}>
+            <Save size={15} /> Save Draft
+          </button>
+          {form.profileStatus !== 'APPROVED' && (
+            <button onClick={() => save(true)} disabled={saving} style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: C.navy, color: C.white, border: 'none', borderRadius: 9,
+              padding: '10px 20px', fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer', fontFamily: 'inherit',
+              opacity: saving ? 0.6 : 1,
+            }}>
+              <Send size={15} /> {saving ? 'Saving…' : 'Submit for Review'}
             </button>
-          ) : (
-            <div className="w-24" /> // Spacer for layout
+          )}
+          {form.profileStatus === 'APPROVED' && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: C.green, fontWeight: 700, fontSize: '0.875rem' }}>
+              <CheckCircle size={16} /> Profile Approved — visible in tree
+            </span>
           )}
         </div>
 
-        {/* Submit Confirmation Modal */}
-        {showSubmitConfirm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  {isNewUser ? (
-                    <UserPlus className="w-6 h-6 text-green-600" />
-                  ) : (
-                    <Send className="w-6 h-6 text-green-600" />
-                  )}
-                </div>
-                <h3 className="text-xl font-bold text-gray-900">
-                  {isNewUser
-                    ? "Create Account & Submit Profile"
-                    : "Submit Profile for Review"}
-                </h3>
-              </div>
-
-              {isNewUser && (
-                <div className="space-y-4 mb-6">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-sm font-medium text-blue-900 mb-3">
-                      Create Your Account
-                    </p>
-
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Email <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="email"
-                          value={profileData.email || ""}
-                          disabled
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
-                          placeholder="Email from Contact section"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                          From your Contact section
-                        </p>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Password <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                          placeholder="Create a password"
-                          minLength={6}
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Confirm Password{" "}
-                          <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="password"
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                          placeholder="Confirm your password"
-                          minLength={6}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-4 text-gray-700">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm font-medium text-blue-900">
-                    What happens next?
-                  </p>
-                  <ul className="mt-2 space-y-2 text-sm text-blue-800">
-                    {isNewUser && <li>• Your account will be created</li>}
-                    <li>
-                      • Your profile will be reviewed by a family administrator
-                    </li>
-                    <li>
-                      • You'll be notified once it's approved or if changes are
-                      needed
-                    </li>
-                    <li>• After approval, you'll appear in the family tree</li>
-                  </ul>
-                </div>
-
-                {!isNewUser && (
-                  <p className="text-sm text-gray-600">
-                    You can still save as draft and make changes before
-                    submitting.
-                  </p>
-                )}
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => setShowSubmitConfirm(false)}
-                  className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={
-                    isLoading || (isNewUser && (!password || !confirmPassword))
-                  }
-                  className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
-                >
-                  {isLoading
-                    ? "Processing..."
-                    : isNewUser
-                    ? "Create & Submit"
-                    : "Submit Profile"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Approval Confirmation Modal */}
-        {showApprovalConfirm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <CheckCircle className="w-6 h-6 text-green-600" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900">
-                  Profile Approved!
-                </h3>
-              </div>
-
-              <div className="space-y-4">
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <p className="text-sm font-medium text-green-900 mb-3">
-                    Congratulations!
-                  </p>
-                  <p className="text-sm text-green-800">
-                    Your profile has been reviewed and approved by a family
-                    administrator. You now have full access to the family tree
-                    and can view and connect with other family members.
-                  </p>
-                </div>
-
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h4 className="text-sm font-medium text-gray-900 mb-3">
-                    Your Profile Information
-                  </h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Name:</span>
-                      <span className="font-medium">
-                        {profileData.firstName}{" "}
-                        {profileData.middleName
-                          ? `${profileData.middleName} `
-                          : ""}
-                        {profileData.lastName}
-                      </span>
-                    </div>
-                    {profileData.email && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Email:</span>
-                        <span className="font-medium">{profileData.email}</span>
-                      </div>
-                    )}
-                    {profileData.dateOfBirth && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Date of Birth:</span>
-                        <span className="font-medium">
-                          {new Date(
-                            profileData.dateOfBirth
-                          ).toLocaleDateString()}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Status:</span>
-                      <span className="font-medium text-green-600">
-                        {profileData.status}
-                      </span>
-                    </div>
-                    {profileData.bio && (
-                      <div className="flex flex-col">
-                        <span className="text-gray-600 mb-1">Bio:</span>
-                        <span className="font-medium text-sm bg-white p-2 rounded border">
-                          {profileData.bio}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm font-medium text-blue-900 mb-2">
-                    What's Next?
-                  </p>
-                  <ul className="text-sm text-blue-800 space-y-1">
-                    <li>• Explore the family tree to find relatives</li>
-                    <li>• Connect with other family members</li>
-                    <li>• Add more details to your profile anytime</li>
-                    <li>• Share your family stories and photos</li>
-                  </ul>
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => setShowApprovalConfirm(false)}
-                  className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  Get Started
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Help Text */}
-        <div className="mt-6 text-center text-sm text-gray-600">
-          <p>
-            Need help? Contact a family administrator or
-            <button className="text-indigo-600 hover:text-indigo-700 ml-1">
-              view our guide
-            </button>
-          </p>
-        </div>
       </div>
     </div>
-  );
-};
-
-// Main component with Provider
-const ProfilePage: React.FC = () => {
-  return (
-    <ProfileProvider>
-      <ProfilePageContent />
-    </ProfileProvider>
   );
 };
 

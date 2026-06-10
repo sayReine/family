@@ -4,7 +4,6 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-  
     "test": "node test-api.js",
     "dev": "nodemon server.ts",
     "create-admin": "ts-node scripts/createAdmin.js"
@@ -28,6 +27,7 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.10.2",

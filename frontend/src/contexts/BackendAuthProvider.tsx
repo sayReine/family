@@ -39,7 +39,10 @@ export const BackendAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
-    if (!res.ok) throw new Error("Login failed");
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || "Login failed");
+    }
     const body = await res.json();
     saveToken(body.token);
     await fetchMe(body.token);
@@ -51,7 +54,10 @@ export const BackendAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password, role }),
     });
-    if (!res.ok) throw new Error("Registration failed");
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || "Registration failed");
+    }
     const body = await res.json();
     saveToken(body.token);
     await fetchMe(body.token);

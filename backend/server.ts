@@ -5,6 +5,7 @@ import dotenv from 'dotenv'
 import authRoutes from './routes/auth.ts'
 import personRoutes from './routes/person.ts'
 import adminRoutes from './routes/admin.ts'
+import familyRoutes from './routes/family.ts'
 
 
 dotenv.config()
@@ -19,6 +20,7 @@ app.use(express.json())
 app.use('/api/auth', authRoutes)
 app.use('/api/person', personRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/families', familyRoutes)
 
 // Health check
 app.get('/health', (req, res) => {
