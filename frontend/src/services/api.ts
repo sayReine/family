@@ -89,27 +89,27 @@ export const authAPI = {
 // Persons API functions
 export const personsAPI = {
   getPersons: async () => {
-    const response = await api.get('/persons');
+    const response = await api.get('/person');
     return response.data;
   },
 
   getPerson: async (id: string) => {
-    const response = await api.get(`/persons/${id}`);
+    const response = await api.get(`/person/${id}`);
     return response.data;
   },
 
   createPerson: async (data: PersonData) => {
-    const response = await api.post('/persons', data);
+    const response = await api.post('/person', data);
     return response.data;
   },
 
   updatePerson: async (id: string, data: Partial<PersonData>) => {
-    const response = await api.put(`/persons/${id}`, data);
+    const response = await api.put(`/person/${id}`, data);
     return response.data;
   },
 
   deletePerson: async (id: string) => {
-    const response = await api.delete(`/persons/${id}`);
+    const response = await api.delete(`/person  /${id}`);
     return response.data;
   },
 

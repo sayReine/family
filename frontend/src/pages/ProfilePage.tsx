@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useBackendAuth } from '../hooks/UseBackendAuth';
 import { Camera, Save, Send, CheckCircle, XCircle, Clock, AlertCircle, Edit3, LogOut } from 'lucide-react';
-import { useLang } from '../contexts/LanguageContext';
+// import { useLang } from '../contexts/LanguageContext';
 
 const C = {
   navy: '#0d2557', navyMid: '#1a3a7a', navyLight: '#2a52a0',
